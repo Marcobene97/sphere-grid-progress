@@ -145,7 +145,7 @@ export const useAppState = () => {
     return session;
   }, []);
 
-  const endWorkSession = useCallback((sessionId: string, focusScore: number, notes?: string) => {
+  const endWorkSession = useCallback((sessionId: string, focusScore: number, notes?: string, analysis?: any) => {
     setState(prev => {
       const sessionIndex = prev.workSessions.findIndex(s => s.id === sessionId);
       if (sessionIndex === -1) return prev;
@@ -154,12 +154,22 @@ export const useAppState = () => {
       const endTime = new Date();
       const duration = Math.floor((endTime.getTime() - new Date(session.startTime).getTime()) / (1000 * 60));
       
-      const focusXP = calculateFocusXP({ ...session, duration, focusScore });
+      let focusXP = calculateFocusXP({ ...session, duration, focusScore });
+      
+      // Apply AI analysis bonuses
+      if (analysis?.bonusXP) {
+        focusXP += analysis.bonusXP;
+      }
+
       const updatedUser = updateUserProgress(
         prev.user,
         focusXP,
         session.category,
-        { focus: Math.floor(focusScore / 2) }
+        { 
+          focus: Math.floor(focusScore / 2),
+          consistency: 1,
+          resilience: analysis ? 1 : 0
+        }
       );
 
       const updatedSession = {
@@ -168,7 +178,12 @@ export const useAppState = () => {
         duration,
         focusScore,
         xpEarned: focusXP,
-        notes
+        notes,
+        analysis: analysis ? {
+          feedback: analysis.feedback,
+          nextSuggestions: analysis.nextSuggestions,
+          bonusXP: analysis.bonusXP
+        } : undefined
       };
 
       const updatedSessions = [...prev.workSessions];

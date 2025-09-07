@@ -11,6 +11,7 @@ import { TaskList } from './TaskList';
 import { SphereGrid } from './SphereGrid';
 import { WorkSessionTimer } from './WorkSessionTimer';
 import { Analytics } from './Analytics';
+import { TaskGenerator } from './TaskGenerator';
 import { getMotivationalMessage } from '@/lib/xp-system';
 import { Play, Target, TrendingUp, Zap, Brain, Heart, Eye } from 'lucide-react';
 
@@ -21,7 +22,8 @@ interface DashboardProps {
   onNodeClick: (node: SphereNode) => void;
   onNodeUpdate: (nodeId: string, updates: Partial<SphereNode>) => void;
   onStartWorkSession: (taskId?: string, nodeId?: string) => any;
-  onEndWorkSession: (sessionId: string, focusScore: number, notes?: string) => void;
+  onEndWorkSession: (sessionId: string, focusScore: number, notes?: string, analysis?: any) => void;
+  onAddTask?: (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => void;
 }
 
 export const Dashboard = ({ 
@@ -31,7 +33,8 @@ export const Dashboard = ({
   onNodeClick,
   onNodeUpdate,
   onStartWorkSession,
-  onEndWorkSession
+  onEndWorkSession,
+  onAddTask
 }: DashboardProps) => {
   const [activeTab, setActiveTab] = useState('overview');
   const [isDungeonMode, setIsDungeonMode] = useState(false);
@@ -235,7 +238,14 @@ export const Dashboard = ({
           />
         </TabsContent>
 
-        <TabsContent value="tasks">
+        <TabsContent value="tasks" className="space-y-6">
+          {onAddTask && (
+            <TaskGenerator
+              userLevel={user.level}
+              currentSkills={['JavaScript', 'React', 'TypeScript']} // Make this dynamic based on completed nodes
+              onTaskGenerated={onAddTask}
+            />
+          )}
           <TaskList 
             tasks={activeTasks} 
             onTaskComplete={onTaskComplete}
