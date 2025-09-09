@@ -1,193 +1,194 @@
-import { Task, TaskCategory, TaskDifficulty } from '@/types';
+import OpenAI from 'openai';
+import { TaskCategory, TaskDifficulty } from '@/types';
+import { AIContract, TaskSuggestion, SuggestTasksInput, TaskAnalysisInput, AIContractError } from '@/ai/contracts';
 
-interface TaskGenerationRequest {
-  category: TaskCategory;
-  userLevel: number;
-  currentSkills: string[];
-  timeAvailable: number; // minutes
-  difficulty?: TaskDifficulty;
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY || '',
+  dangerouslyAllowBrowser: true
+});
+
+// Initialize AI contract
+const aiContract = new AIContract(openai);
+
+export interface WorkSessionAnalysis {
+  feedback: string;
+  nextSuggestions: string[];
+  focusInsights: string;
+  bonusXP: number;
 }
 
-interface GeneratedTask {
-  title: string;
-  description: string;
-  estimatedTime: number;
-  difficulty: TaskDifficulty;
-  priority: 1 | 2 | 3 | 4 | 5;
-  tags: string[];
-}
+export const suggestTasks = async (
+  userGoals: string[],
+  currentLevel: number,
+  category?: TaskCategory,
+  availableTime?: number,
+  currentGridState?: any,
+  recentCompletions?: any[]
+): Promise<TaskSuggestion[]> => {
+  try {
+    const input: SuggestTasksInput = {
+      goals: userGoals,
+      currentGridState: currentGridState || {
+        unlockedNodes: [],
+        completedNodes: [],
+        currentBranch: category
+      },
+      availableMinutes: availableTime || 60,
+      difficultyMix: {
+        basic: 30,
+        intermediate: 50,
+        advanced: 20
+      },
+      recentCompletions: recentCompletions || []
+    };
 
-class OpenAIService {
-  private apiKey: string | null = null;
+    const suggestions = await aiContract.suggestTasks(input);
+    
+    // Convert branch to category format
+    return suggestions.map(suggestion => ({
+      ...suggestion,
+      category: suggestion.branch.toLowerCase() as TaskCategory,
+      xpReward: calculateXPReward(suggestion.difficulty.toLowerCase() as TaskDifficulty)
+    }));
 
-  constructor() {
-    // In a real app, this would come from environment variables or secure storage
-    this.apiKey = localStorage.getItem('openai_api_key');
-  }
-
-  setApiKey(key: string) {
-    this.apiKey = key;
-    localStorage.setItem('openai_api_key', key);
-  }
-
-  getApiKey(): string | null {
-    return this.apiKey;
-  }
-
-  async generateTasks(request: TaskGenerationRequest): Promise<GeneratedTask[]> {
-    if (!this.apiKey) {
-      throw new Error('OpenAI API key not set');
-    }
-
-    const prompt = this.buildPrompt(request);
-
-    try {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'gpt-4',
-          messages: [
-            {
-              role: 'system',
-              content: 'You are a productivity coach that generates personalized tasks. Always respond with valid JSON only.'
-            },
-            {
-              role: 'user',
-              content: prompt
-            }
-          ],
-          temperature: 0.7,
-          max_tokens: 1000,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`OpenAI API error: ${response.statusText}`);
+  } catch (error) {
+    if (error instanceof AIContractError) {
+      console.warn('AI service error:', error.message);
+      if (error.code === 'RATE_LIMITED') {
+        throw new Error(`Rate limited. Try again in ${Math.ceil((error.retryAfter || 0) / 1000)} seconds.`);
       }
-
-      const data = await response.json();
-      const content = data.choices[0].message.content;
-      
-      return JSON.parse(content);
-    } catch (error) {
-      console.error('Failed to generate tasks:', error);
-      throw error;
     }
+    
+    console.error('Error generating task suggestions:', error);
+    return getFallbackSuggestions(category);
   }
+};
 
-  async analyzeTaskCompletion(
-    task: Task, 
-    actualTime: number, 
-    focusNotes?: string
-  ): Promise<{ 
-    focusScore: number; 
-    bonusXP: number; 
-    feedback: string; 
-    nextSuggestions: string[] 
-  }> {
-    if (!this.apiKey) {
-      return {
-        focusScore: 8,
-        bonusXP: 0,
-        feedback: 'Great work!',
-        nextSuggestions: []
-      };
+export const analyzeWorkSession = async (
+  taskTitle: string,
+  estimatedTime: number,
+  actualTime: number,
+  focusScore: number,
+  difficulty: TaskDifficulty,
+  notes?: string
+): Promise<WorkSessionAnalysis> => {
+  try {
+    const input: TaskAnalysisInput = {
+      taskTitle,
+      estimatedMinutes: estimatedTime,
+      actualMinutes: actualTime,
+      difficulty,
+      notes,
+      focusScore,
+      completion: 'completed'
+    };
+
+    const analysis = await aiContract.analyzeTaskOutcome(input);
+    
+    // Calculate bonus XP based on analysis
+    const efficiency = estimatedTime / actualTime;
+    const baseBonusXP = Math.floor(focusScore * 2);
+    let bonusXP = baseBonusXP;
+    
+    if (analysis.estimationAccuracy === 'accurate') bonusXP += 10;
+    if (analysis.difficultyAssessment === 'appropriate') bonusXP += 10;
+    if (efficiency > 1.2) bonusXP += 15; // Efficiency bonus
+    
+    bonusXP = Math.max(0, Math.min(50, bonusXP));
+
+    return {
+      feedback: analysis.reflection,
+      nextSuggestions: analysis.nextSuggestions || [analysis.tweak],
+      focusInsights: analysis.focusInsight || `Focus score: ${focusScore}/10`,
+      bonusXP
+    };
+
+  } catch (error) {
+    if (error instanceof AIContractError) {
+      console.warn('AI analysis error:', error.message);
     }
+    
+    console.error('Error analyzing work session:', error);
+    return getFallbackAnalysis(estimatedTime, actualTime, focusScore);
+  }
+};
 
-    const prompt = `
-    Analyze this task completion:
-    
-    Task: ${task.title}
-    Description: ${task.description}
-    Estimated Time: ${task.estimatedTime} minutes
-    Actual Time: ${actualTime} minutes
-    Difficulty: ${task.difficulty}
-    Category: ${task.category}
-    ${focusNotes ? `Focus Notes: ${focusNotes}` : ''}
-    
-    Provide analysis as JSON:
+const calculateXPReward = (difficulty: TaskDifficulty): number => {
+  switch (difficulty) {
+    case 'basic': return Math.floor(Math.random() * 15) + 10;
+    case 'intermediate': return Math.floor(Math.random() * 50) + 50;
+    case 'advanced': return Math.floor(Math.random() * 150) + 150;
+    default: return 25;
+  }
+};
+
+const getFallbackSuggestions = (category?: TaskCategory): TaskSuggestion[] => {
+  const suggestions = [
     {
-      "focusScore": number (1-10),
-      "bonusXP": number (0-100),
-      "feedback": "encouraging message",
-      "nextSuggestions": ["task1", "task2", "task3"]
+      title: "Complete a focused work session",
+      description: "Set a timer for 25 minutes and work on your most important task without distractions.",
+      branch: 'Programming' as const,
+      difficulty: 'Basic' as const,
+      estMinutes: 25,
+      tags: ['focus', 'productivity']
+    },
+    {
+      title: "Review and plan tomorrow's priorities", 
+      description: "Take 15 minutes to review today's accomplishments and plan your top 3 priorities for tomorrow.",
+      branch: 'Finance' as const,
+      difficulty: 'Basic' as const,
+      estMinutes: 15,
+      tags: ['planning', 'reflection']
+    },
+    {
+      title: "Practice a new skill for 30 minutes",
+      description: "Dedicate focused time to learning or practicing a skill in your chosen domain.",
+      branch: 'Music' as const,
+      difficulty: 'Intermediate' as const,
+      estMinutes: 30,
+      tags: ['skill-building', 'practice']
     }
-    `;
+  ];
 
-    try {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'gpt-4',
-          messages: [
-            {
-              role: 'system',
-              content: 'You are a performance analyst. Respond with valid JSON only.'
-            },
-            {
-              role: 'user',
-              content: prompt
-            }
-          ],
-          temperature: 0.3,
-          max_tokens: 500,
-        }),
-      });
+  if (category) {
+    const branchMap = {
+      programming: 'Programming',
+      finance: 'Finance', 
+      music: 'Music',
+      general: 'Programming'
+    };
+    const targetBranch = branchMap[category];
+    return suggestions.filter(s => s.branch === targetBranch);
+  }
+  
+  return suggestions;
+};
 
-      if (!response.ok) {
-        throw new Error(`OpenAI API error: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      return JSON.parse(data.choices[0].message.content);
-    } catch (error) {
-      console.error('Failed to analyze task completion:', error);
-      return {
-        focusScore: 8,
-        bonusXP: 0,
-        feedback: 'Task completed successfully!',
-        nextSuggestions: []
-      };
-    }
+const getFallbackAnalysis = (
+  estimatedTime: number,
+  actualTime: number,
+  focusScore: number
+): WorkSessionAnalysis => {
+  const efficiency = estimatedTime / actualTime;
+  let feedback = "Great work completing this task! ";
+  
+  if (efficiency > 1.2) {
+    feedback += "You finished faster than expected - excellent efficiency!";
+  } else if (efficiency < 0.8) {
+    feedback += "The task took longer than planned, but persistence pays off.";
+  } else {
+    feedback += "Your time estimation was quite accurate.";
   }
 
-  private buildPrompt(request: TaskGenerationRequest): string {
-    return `
-    Generate 3 personalized tasks for a user with these parameters:
-    
-    Category: ${request.category}
-    User Level: ${request.userLevel}
-    Available Time: ${request.timeAvailable} minutes
-    Current Skills: ${request.currentSkills.join(', ')}
-    ${request.difficulty ? `Preferred Difficulty: ${request.difficulty}` : ''}
-    
-    Generate tasks that:
-    1. Match the user's skill level and available time
-    2. Are engaging and progressively challenging
-    3. Include realistic time estimates
-    4. Have clear, actionable descriptions
-    
-    Respond with a JSON array of exactly 3 tasks:
-    [
-      {
-        "title": "Task name",
-        "description": "Detailed description",
-        "estimatedTime": number (in minutes),
-        "difficulty": "basic" | "intermediate" | "advanced",
-        "priority": number (1-5),
-        "tags": ["tag1", "tag2"]
-      }
-    ]
-    `;
-  }
-}
+  const bonusXP = Math.max(0, Math.min(50, Math.floor(focusScore * 5 + efficiency * 10)));
 
-export const openaiService = new OpenAIService();
+  return {
+    feedback,
+    nextSuggestions: [
+      "Try breaking larger tasks into smaller chunks",
+      "Set up a distraction-free workspace for better focus"
+    ],
+    focusInsights: `Your focus score of ${focusScore}/10 shows ${focusScore >= 8 ? 'excellent' : focusScore >= 6 ? 'good' : 'room for improvement'} concentration.`,
+    bonusXP
+  };
+};
