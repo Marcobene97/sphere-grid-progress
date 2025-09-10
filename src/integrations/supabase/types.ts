@@ -14,7 +14,410 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      achievements: {
+        Row: {
+          conditions: Json
+          created_at: string
+          description: string
+          icon: string
+          id: string
+          rarity: Database["public"]["Enums"]["achievement_rarity"]
+          title: string
+          unlocked_at: string | null
+          user_id: string
+          xp_reward: number
+        }
+        Insert: {
+          conditions: Json
+          created_at?: string
+          description: string
+          icon: string
+          id?: string
+          rarity: Database["public"]["Enums"]["achievement_rarity"]
+          title: string
+          unlocked_at?: string | null
+          user_id: string
+          xp_reward?: number
+        }
+        Update: {
+          conditions?: Json
+          created_at?: string
+          description?: string
+          icon?: string
+          id?: string
+          rarity?: Database["public"]["Enums"]["achievement_rarity"]
+          title?: string
+          unlocked_at?: string | null
+          user_id?: string
+          xp_reward?: number
+        }
+        Relationships: []
+      }
+      nodes: {
+        Row: {
+          branch: Database["public"]["Enums"]["node_branch"]
+          category: Database["public"]["Enums"]["node_category"]
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          id: string
+          mastered_at: string | null
+          position_x: number
+          position_y: number
+          prerequisites: string[] | null
+          progress: number
+          reward_skills: string[] | null
+          reward_xp: number
+          status: Database["public"]["Enums"]["node_status"]
+          time_spent: number
+          title: string
+          type: Database["public"]["Enums"]["node_type"]
+          unlocks: string[] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          branch: Database["public"]["Enums"]["node_branch"]
+          category: Database["public"]["Enums"]["node_category"]
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          mastered_at?: string | null
+          position_x?: number
+          position_y?: number
+          prerequisites?: string[] | null
+          progress?: number
+          reward_skills?: string[] | null
+          reward_xp?: number
+          status?: Database["public"]["Enums"]["node_status"]
+          time_spent?: number
+          title: string
+          type: Database["public"]["Enums"]["node_type"]
+          unlocks?: string[] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          branch?: Database["public"]["Enums"]["node_branch"]
+          category?: Database["public"]["Enums"]["node_category"]
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          mastered_at?: string | null
+          position_x?: number
+          position_y?: number
+          prerequisites?: string[] | null
+          progress?: number
+          reward_skills?: string[] | null
+          reward_xp?: number
+          status?: Database["public"]["Enums"]["node_status"]
+          time_spent?: number
+          title?: string
+          type?: Database["public"]["Enums"]["node_type"]
+          unlocks?: string[] | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          consistency_pillar: number
+          created_at: string
+          current_streak: number
+          current_xp: number
+          focus_pillar: number
+          id: string
+          last_active_at: string
+          last_completion_date: string | null
+          level: number
+          longest_streak: number
+          name: string
+          rank: string
+          resilience_pillar: number
+          total_xp: number
+          user_id: string
+          xp_to_next_level: number
+        }
+        Insert: {
+          consistency_pillar?: number
+          created_at?: string
+          current_streak?: number
+          current_xp?: number
+          focus_pillar?: number
+          id?: string
+          last_active_at?: string
+          last_completion_date?: string | null
+          level?: number
+          longest_streak?: number
+          name?: string
+          rank?: string
+          resilience_pillar?: number
+          total_xp?: number
+          user_id: string
+          xp_to_next_level?: number
+        }
+        Update: {
+          consistency_pillar?: number
+          created_at?: string
+          current_streak?: number
+          current_xp?: number
+          focus_pillar?: number
+          id?: string
+          last_active_at?: string
+          last_completion_date?: string | null
+          level?: number
+          longest_streak?: number
+          name?: string
+          rank?: string
+          resilience_pillar?: number
+          total_xp?: number
+          user_id?: string
+          xp_to_next_level?: number
+        }
+        Relationships: []
+      }
+      reflections: {
+        Row: {
+          bonus_xp: number
+          created_at: string
+          focus_insights: string | null
+          id: string
+          next_suggestions: string[] | null
+          reflection: string
+          session_id: string | null
+          task_id: string | null
+          user_id: string
+          xp_breakdown: Json | null
+        }
+        Insert: {
+          bonus_xp?: number
+          created_at?: string
+          focus_insights?: string | null
+          id?: string
+          next_suggestions?: string[] | null
+          reflection: string
+          session_id?: string | null
+          task_id?: string | null
+          user_id: string
+          xp_breakdown?: Json | null
+        }
+        Update: {
+          bonus_xp?: number
+          created_at?: string
+          focus_insights?: string | null
+          id?: string
+          next_suggestions?: string[] | null
+          reflection?: string
+          session_id?: string | null
+          task_id?: string | null
+          user_id?: string
+          xp_breakdown?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reflections_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reflections_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sessions: {
+        Row: {
+          analysis: Json | null
+          category: Database["public"]["Enums"]["task_category"]
+          created_at: string
+          duration: number
+          end_time: string | null
+          focus_score: number
+          id: string
+          node_id: string | null
+          notes: string | null
+          start_time: string
+          task_id: string | null
+          type: Database["public"]["Enums"]["session_type"]
+          user_id: string
+          xp_earned: number
+        }
+        Insert: {
+          analysis?: Json | null
+          category: Database["public"]["Enums"]["task_category"]
+          created_at?: string
+          duration?: number
+          end_time?: string | null
+          focus_score?: number
+          id?: string
+          node_id?: string | null
+          notes?: string | null
+          start_time: string
+          task_id?: string | null
+          type?: Database["public"]["Enums"]["session_type"]
+          user_id: string
+          xp_earned?: number
+        }
+        Update: {
+          analysis?: Json | null
+          category?: Database["public"]["Enums"]["task_category"]
+          created_at?: string
+          duration?: number
+          end_time?: string | null
+          focus_score?: number
+          id?: string
+          node_id?: string | null
+          notes?: string | null
+          start_time?: string
+          task_id?: string | null
+          type?: Database["public"]["Enums"]["session_type"]
+          user_id?: string
+          xp_earned?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sessions_node_id_fkey"
+            columns: ["node_id"]
+            isOneToOne: false
+            referencedRelation: "nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sessions_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      settings: {
+        Row: {
+          created_at: string
+          daily_xp_goal: number
+          dungeon_bonus: boolean
+          efficiency_slope: number
+          id: string
+          idle_timeout: number
+          min_focus_minutes: number
+          reminder_time: string
+          sound_enabled: boolean
+          streak_cap: number
+          theme: string
+          updated_at: string
+          user_id: string
+          work_session_length: number
+        }
+        Insert: {
+          created_at?: string
+          daily_xp_goal?: number
+          dungeon_bonus?: boolean
+          efficiency_slope?: number
+          id?: string
+          idle_timeout?: number
+          min_focus_minutes?: number
+          reminder_time?: string
+          sound_enabled?: boolean
+          streak_cap?: number
+          theme?: string
+          updated_at?: string
+          user_id: string
+          work_session_length?: number
+        }
+        Update: {
+          created_at?: string
+          daily_xp_goal?: number
+          dungeon_bonus?: boolean
+          efficiency_slope?: number
+          id?: string
+          idle_timeout?: number
+          min_focus_minutes?: number
+          reminder_time?: string
+          sound_enabled?: boolean
+          streak_cap?: number
+          theme?: string
+          updated_at?: string
+          user_id?: string
+          work_session_length?: number
+        }
+        Relationships: []
+      }
+      tasks: {
+        Row: {
+          actual_time: number | null
+          category: Database["public"]["Enums"]["task_category"]
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          difficulty: Database["public"]["Enums"]["task_difficulty"]
+          due_date: string | null
+          estimated_time: number
+          id: string
+          node_id: string | null
+          priority: number
+          status: Database["public"]["Enums"]["task_status"]
+          tags: string[] | null
+          title: string
+          updated_at: string
+          user_id: string
+          xp_reward: number
+        }
+        Insert: {
+          actual_time?: number | null
+          category: Database["public"]["Enums"]["task_category"]
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          difficulty: Database["public"]["Enums"]["task_difficulty"]
+          due_date?: string | null
+          estimated_time?: number
+          id?: string
+          node_id?: string | null
+          priority?: number
+          status?: Database["public"]["Enums"]["task_status"]
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+          user_id: string
+          xp_reward?: number
+        }
+        Update: {
+          actual_time?: number | null
+          category?: Database["public"]["Enums"]["task_category"]
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          difficulty?: Database["public"]["Enums"]["task_difficulty"]
+          due_date?: string | null
+          estimated_time?: number
+          id?: string
+          node_id?: string | null
+          priority?: number
+          status?: Database["public"]["Enums"]["task_status"]
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+          xp_reward?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_node_id_fkey"
+            columns: ["node_id"]
+            isOneToOne: false
+            referencedRelation: "nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +426,20 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      achievement_rarity: "common" | "rare" | "epic" | "legendary"
+      node_branch: "programming" | "finance" | "music"
+      node_category: "skill" | "habit" | "milestone" | "project"
+      node_status:
+        | "locked"
+        | "available"
+        | "in_progress"
+        | "completed"
+        | "mastered"
+      node_type: "basic" | "intermediate" | "advanced" | "master"
+      session_type: "deep_work" | "practice" | "learning" | "review"
+      task_category: "programming" | "finance" | "music" | "general"
+      task_difficulty: "basic" | "intermediate" | "advanced"
+      task_status: "pending" | "in_progress" | "completed" | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +566,22 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      achievement_rarity: ["common", "rare", "epic", "legendary"],
+      node_branch: ["programming", "finance", "music"],
+      node_category: ["skill", "habit", "milestone", "project"],
+      node_status: [
+        "locked",
+        "available",
+        "in_progress",
+        "completed",
+        "mastered",
+      ],
+      node_type: ["basic", "intermediate", "advanced", "master"],
+      session_type: ["deep_work", "practice", "learning", "review"],
+      task_category: ["programming", "finance", "music", "general"],
+      task_difficulty: ["basic", "intermediate", "advanced"],
+      task_status: ["pending", "in_progress", "completed", "cancelled"],
+    },
   },
 } as const
