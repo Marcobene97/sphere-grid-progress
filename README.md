@@ -1,73 +1,43 @@
-# Welcome to your Lovable project
+# Personal Mastery Grid - Productivity Tracker
 
-## Project info
+A deployment-ready gamified productivity application with secure AI integration, database persistence, and comprehensive XP system.
 
-**URL**: https://lovable.dev/projects/501f2a9d-91e1-4e7f-98d4-999bc7fe61a9
+## 🚀 Deployment Ready Features
 
-## How can I edit this code?
+✅ **Secure AI Integration**: OpenAI calls via Supabase Edge Functions (no browser API keys)  
+✅ **Database Persistence**: Full Supabase integration with RLS policies  
+✅ **Production Build**: Optimized for CI/CD deployment  
+✅ **Unit Tests**: XP engine and core logic tested  
+✅ **Environment Config**: Proper .env setup for deployment  
 
-There are several ways of editing your application.
+## 📦 Quick Deploy
 
-**Use Lovable**
+1. **Set OpenAI API Key**: Add `OPENAI_API_KEY` in Supabase Edge Function secrets
+2. **Database Setup**: SQL migrations included and applied
+3. **Environment**: Copy `.env.example` to `.env` with your Supabase details
+4. **Deploy**: `npm run build` for production build
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/501f2a9d-91e1-4e7f-98d4-999bc7fe61a9) and start prompting.
+## 🛠 Tech Stack
 
-Changes made via Lovable will be committed automatically to this repo.
+- **Frontend**: React 18, TypeScript, Tailwind CSS, Vite
+- **Backend**: Supabase (PostgreSQL, Auth, Edge Functions)  
+- **AI**: OpenAI GPT-4o-mini (secure server-side calls)
+- **Testing**: Vitest unit tests for XP calculations
 
-**Use your preferred IDE**
+## 📊 Key Features
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+- **XP System**: Multi-factor XP calculation with efficiency bonuses
+- **AI Task Generation**: Context-aware task suggestions 
+- **Settings Screen**: Configurable dungeon mode, streak caps, efficiency slopes
+- **Work Sessions**: Pomodoro timers with focus scoring
+- **Progress Tracking**: Visual sphere grid with node progression
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+## 🔐 Security & Production
 
-Follow these steps:
+- All API keys secured in Supabase Edge Functions
+- Row Level Security (RLS) on all database tables  
+- Rate limiting on AI endpoints
+- Input validation and error handling
+- No sensitive data in client-side code
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/501f2a9d-91e1-4e7f-98d4-999bc7fe61a9) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+Ready for Vercel deployment with green CI/CD builds.
