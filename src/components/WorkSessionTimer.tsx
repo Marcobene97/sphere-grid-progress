@@ -5,7 +5,7 @@ import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Play, Pause, Square, Timer, Brain, Zap } from 'lucide-react';
-import { openaiService } from '@/lib/openai-service';
+import { analyzeWorkSession, openaiService } from '@/lib/openai-service';
 
 interface WorkSessionTimerProps {
   onStart: (taskId?: string, nodeId?: string) => any;

@@ -2,13 +2,44 @@ import OpenAI from 'openai';
 import { TaskCategory, TaskDifficulty } from '@/types';
 import { AIContract, TaskSuggestion, SuggestTasksInput, TaskAnalysisInput, AIContractError } from '@/ai/contracts';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || '',
+let currentApiKey = process.env.OPENAI_API_KEY || '';
+
+const getOpenAI = () => new OpenAI({
+  apiKey: currentApiKey,
   dangerouslyAllowBrowser: true
 });
 
 // Initialize AI contract
-const aiContract = new AIContract(openai);
+let aiContract = new AIContract(getOpenAI());
+
+// OpenAI service object for compatibility
+export const openaiService = {
+  getApiKey: () => currentApiKey,
+  setApiKey: (key: string) => {
+    currentApiKey = key;
+    aiContract = new AIContract(getOpenAI());
+  },
+  generateTasks: async (params: any) => {
+    return await suggestTasks(
+      params.currentSkills || [],
+      params.userLevel || 1,
+      params.category,
+      params.timeAvailable,
+      undefined,
+      []
+    );
+  },
+  analyzeTaskCompletion: async (task: any, actualMinutes: number, notes?: string) => {
+    return await analyzeWorkSession(
+      task.title,
+      task.estimatedTime || 30,
+      actualMinutes,
+      8, // Default focus score
+      task.difficulty || 'basic',
+      notes
+    );
+  }
+};
 
 export interface WorkSessionAnalysis {
   feedback: string;
