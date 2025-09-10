@@ -2,7 +2,7 @@ import OpenAI from 'openai';
 import { TaskCategory, TaskDifficulty } from '@/types';
 import { AIContract, TaskSuggestion, SuggestTasksInput, TaskAnalysisInput, AIContractError } from '@/ai/contracts';
 
-let currentApiKey = process.env.OPENAI_API_KEY || '';
+let currentApiKey = '';
 
 const getOpenAI = () => new OpenAI({
   apiKey: currentApiKey,
