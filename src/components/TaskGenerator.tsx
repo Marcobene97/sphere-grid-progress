@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Wand2, Loader2, Clock, Star } from 'lucide-react';
-import { suggestTasks, openaiService } from '@/lib/openai-service';
+import { openaiService } from '@/lib/openai-service';
 import { TaskCategory, TaskDifficulty, Task } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 
@@ -17,34 +17,13 @@ interface TaskGeneratorProps {
 }
 
 export const TaskGenerator = ({ userLevel, currentSkills, onTaskGenerated }: TaskGeneratorProps) => {
-  const [apiKey, setApiKey] = useState(openaiService.getApiKey() || '');
   const [category, setCategory] = useState<TaskCategory>('programming');
-  const [difficulty, setDifficulty] = useState<TaskDifficulty>('basic');
   const [timeAvailable, setTimeAvailable] = useState(30);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedTasks, setGeneratedTasks] = useState<any[]>([]);
   const { toast } = useToast();
 
-  const handleSetApiKey = () => {
-    if (apiKey.trim()) {
-      openaiService.setApiKey(apiKey);
-      toast({
-        title: "API Key Set",
-        description: "OpenAI API key has been saved successfully.",
-      });
-    }
-  };
-
   const generateTasks = async () => {
-    if (!openaiService.getApiKey()) {
-      toast({
-        title: "API Key Required",
-        description: "Please set your OpenAI API key first.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsGenerating(true);
     try {
       const tasks = await openaiService.generateTasks({
@@ -52,7 +31,7 @@ export const TaskGenerator = ({ userLevel, currentSkills, onTaskGenerated }: Tas
         userLevel,
         currentSkills,
         timeAvailable,
-        difficulty,
+        goals: [`Improve ${category} skills`, 'Build productive habits']
       });
 
       setGeneratedTasks(tasks);
@@ -77,9 +56,9 @@ export const TaskGenerator = ({ userLevel, currentSkills, onTaskGenerated }: Tas
       description: generatedTask.description,
       category,
       difficulty: generatedTask.difficulty,
-      priority: generatedTask.priority,
+      priority: 3 as const, // Default priority
       xpReward: 0, // Will be calculated on completion
-      estimatedTime: generatedTask.estimatedTime,
+      estimatedTime: generatedTask.estMinutes,
       status: 'pending' as const,
       tags: generatedTask.tags || [],
     };
@@ -112,26 +91,7 @@ export const TaskGenerator = ({ userLevel, currentSkills, onTaskGenerated }: Tas
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {!openaiService.getApiKey() && (
-          <div className="space-y-2">
-            <Label htmlFor="apiKey">OpenAI API Key</Label>
-            <div className="flex gap-2">
-              <Input
-                id="apiKey"
-                type="password"
-                placeholder="sk-..."
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                className="flex-1"
-              />
-              <Button onClick={handleSetApiKey} size="sm">
-                Set Key
-              </Button>
-            </div>
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label>Category</Label>
             <Select value={category} onValueChange={(value: TaskCategory) => setCategory(value)}>
@@ -143,20 +103,6 @@ export const TaskGenerator = ({ userLevel, currentSkills, onTaskGenerated }: Tas
                 <SelectItem value="finance">Finance</SelectItem>
                 <SelectItem value="music">Music</SelectItem>
                 <SelectItem value="general">General</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Difficulty</Label>
-            <Select value={difficulty} onValueChange={(value: TaskDifficulty) => setDifficulty(value)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="basic">Basic</SelectItem>
-                <SelectItem value="intermediate">Intermediate</SelectItem>
-                <SelectItem value="advanced">Advanced</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -175,7 +121,7 @@ export const TaskGenerator = ({ userLevel, currentSkills, onTaskGenerated }: Tas
 
         <Button 
           onClick={generateTasks} 
-          disabled={isGenerating || !openaiService.getApiKey()}
+          disabled={isGenerating}
           className="w-full"
         >
           {isGenerating ? (
@@ -209,12 +155,7 @@ export const TaskGenerator = ({ userLevel, currentSkills, onTaskGenerated }: Tas
                         
                         <div className="flex items-center gap-1 text-sm text-muted-foreground">
                           <Clock className="w-3 h-3" />
-                          {task.estimatedTime}m
-                        </div>
-                        
-                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                          <Star className="w-3 h-3" />
-                          {task.priority}/5
+                          {task.estMinutes}m
                         </div>
 
                         {task.tags?.map((tag: string) => (
