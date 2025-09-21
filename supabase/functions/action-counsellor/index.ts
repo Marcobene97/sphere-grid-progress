@@ -443,6 +443,7 @@ async function seedMindmap(supabase: any, authHeader: string, payload: any) {
 
   // Create nodes in order (parents first)
   const nodeIdMap = new Map<string, string>();
+  const createdNodes = [];
   
   for (const nodeData of mindmapData) {
     const parentId = nodeData.parentId ? nodeIdMap.get(nodeData.parentId) : null;
@@ -462,13 +463,41 @@ async function seedMindmap(supabase: any, authHeader: string, payload: any) {
         type: 'basic',
         reward_xp: 50,
         description: `Working on ${nodeData.title}`,
-        goal_type: 'project'
+        goal_type: 'project',
+        unlocks: [], // Initialize empty unlocks array
+        prerequisites: parentId ? [parentId] : []
       })
       .select()
       .single();
 
     if (createdNode) {
       nodeIdMap.set(nodeData.title, createdNode.id);
+      createdNodes.push({ ...createdNode, originalTitle: nodeData.title, parentTitle: nodeData.parentId });
+    }
+  }
+
+  // Now update nodes to set up unlocks relationships (parent unlocks children)
+  for (const node of createdNodes) {
+    if (node.parent_id) {
+      // Find the parent node and add this node to its unlocks array
+      const parentNode = createdNodes.find(n => n.id === node.parent_id);
+      if (parentNode) {
+        const { data: updatedParent } = await supabase
+          .from('nodes')
+          .select('unlocks')
+          .eq('id', parentNode.id)
+          .single();
+          
+        const currentUnlocks = updatedParent?.unlocks || [];
+        if (!currentUnlocks.includes(node.id)) {
+          await supabase
+            .from('nodes')
+            .update({
+              unlocks: [...currentUnlocks, node.id]
+            })
+            .eq('id', parentNode.id);
+        }
+      }
     }
   }
 
