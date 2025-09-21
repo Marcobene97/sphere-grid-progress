@@ -447,16 +447,13 @@ export type Database = {
       }
     }
     Views: {
-      user_xp: {
-        Row: {
-          total_xp: number | null
-          user_id: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_total_xp: {
+        Args: { user_uuid?: string }
+        Returns: number
+      }
     }
     Enums: {
       achievement_rarity: "common" | "rare" | "epic" | "legendary"

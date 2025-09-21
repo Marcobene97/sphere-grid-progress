@@ -2,14 +2,45 @@ import { useState, useEffect, useCallback } from 'react';
 import { AppState, User, SphereNode, Task, WorkSession } from '@/types';
 import { loadState, saveState } from '@/lib/storage';
 import { updateUserProgress, calculateTaskXP, calculateFocusXP } from '@/lib/xp-system';
+import { ensureSession } from '@/lib/ensureSession';
+import { awardXP, loadTotalXP } from '@/lib/xp';
+import { useXP } from './useXP';
 
 export const useAppState = () => {
   const [state, setState] = useState<AppState>(() => loadState());
+  const [isInitialized, setIsInitialized] = useState(false);
+  const { xp, setXP, addXP } = useXP();
+
+  // Initialize session and load XP on boot
+  useEffect(() => {
+    const initializeApp = async () => {
+      try {
+        await ensureSession(); // Ensure anonymous user exists
+        const totalXP = await loadTotalXP(); // Load XP from Supabase
+        setXP(totalXP); // Update local store
+        
+        // Update user in state with loaded XP
+        setState(prev => ({
+          ...prev,
+          user: { ...prev.user, totalXP }
+        }));
+      } catch (error) {
+        console.error('Failed to initialize session or load XP:', error);
+        // Fallback to localStorage XP
+      } finally {
+        setIsInitialized(true);
+      }
+    };
+
+    initializeApp();
+  }, [setXP]);
 
   // Auto-save state whenever it changes
   useEffect(() => {
-    saveState(state);
-  }, [state]);
+    if (isInitialized) {
+      saveState(state);
+    }
+  }, [state, isInitialized]);
 
   const updateUser = useCallback((updates: Partial<User>) => {
     setState(prev => ({
@@ -54,7 +85,7 @@ export const useAppState = () => {
     }));
   }, []);
 
-  const completeTask = useCallback((taskId: string, actualTime: number, focusScore: number) => {
+  const completeTask = useCallback(async (taskId: string, actualTime: number, focusScore: number) => {
     setState(prev => {
       const task = prev.tasks.find(t => t.id === taskId);
       if (!task) return prev;
@@ -70,6 +101,20 @@ export const useAppState = () => {
           resilience: actualTime > task.estimatedTime ? 1 : 0
         }
       );
+
+      // Award XP to Supabase (async, non-blocking)
+      awardXP(xpGained, 'task', { 
+        taskId, 
+        category: task.category, 
+        difficulty: task.difficulty,
+        actualTime,
+        focusScore
+      }).then(() => {
+        addXP(xpGained); // Update local XP store
+      }).catch(error => {
+        console.error('Failed to award XP to Supabase:', error);
+        addXP(xpGained); // Still update local store as fallback
+      });
 
       // Update task
       const updatedTasks = prev.tasks.map(t => 
@@ -145,7 +190,7 @@ export const useAppState = () => {
     return session;
   }, []);
 
-  const endWorkSession = useCallback((sessionId: string, focusScore: number, notes?: string, analysis?: any) => {
+  const endWorkSession = useCallback(async (sessionId: string, focusScore: number, notes?: string, analysis?: any) => {
     setState(prev => {
       const sessionIndex = prev.workSessions.findIndex(s => s.id === sessionId);
       if (sessionIndex === -1) return prev;
@@ -171,6 +216,23 @@ export const useAppState = () => {
           resilience: analysis ? 1 : 0
         }
       );
+
+      // Award XP to Supabase (async, non-blocking)
+      awardXP(focusXP, 'session', {
+        sessionId,
+        category: session.category,
+        duration,
+        focusScore,
+        analysis: analysis ? {
+          bonusXP: analysis.bonusXP,
+          feedback: analysis.feedback
+        } : undefined
+      }).then(() => {
+        addXP(focusXP); // Update local XP store
+      }).catch(error => {
+        console.error('Failed to award session XP to Supabase:', error);
+        addXP(focusXP); // Still update local store as fallback
+      });
 
       const updatedSession = {
         ...session,
@@ -210,6 +272,7 @@ export const useAppState = () => {
 
   return {
     state,
+    isInitialized,
     updateUser,
     updateNode,
     addTask,
