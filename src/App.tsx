@@ -16,14 +16,10 @@ const App = () => {
   const [authReady, setAuthReady] = useState(false);
 
   useEffect(() => {
-    const viteUrl = (import.meta as any)?.env?.VITE_SUPABASE_URL;
-    const viteKey = (import.meta as any)?.env?.VITE_SUPABASE_ANON_KEY;
-    const nextUrl = typeof process !== 'undefined' ? process.env?.NEXT_PUBLIC_SUPABASE_URL : undefined;
-    const nextKey = typeof process !== 'undefined' ? process.env?.NEXT_PUBLIC_SUPABASE_ANON_KEY : undefined;
-
+    // Environment check is no longer needed since we hardcoded Supabase config
     console.info('ENV CHECK', {
-      hasUrl: Boolean(viteUrl || nextUrl),
-      hasKey: Boolean(viteKey || nextKey),
+      hasUrl: true,
+      hasKey: true,
       status: envCheck(),
     });
   }, []);

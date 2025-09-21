@@ -5,7 +5,7 @@ export function DebugBanner() {
   const [hasSession, setHasSession] = useState<boolean | null>(null);
   const [fnOk, setFnOk] = useState<boolean | null>(null);
   const mode = import.meta.env.MODE;
-  const hasEnv = Boolean(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY);
+  const hasEnv = true; // Environment is now hardcoded in supabase.ts
 
   useEffect(() => {
     let isMounted = true;
