@@ -7,22 +7,12 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { ensureSession } from '@/lib/ensureSession';
-import { DebugBanner } from '@/components/dev/DebugBanner';
-import { envCheck, supabase } from '@/lib/supabase';
 
 const queryClient = new QueryClient();
 
 const App = () => {
   const [authReady, setAuthReady] = useState(false);
 
-  useEffect(() => {
-    // Environment check is no longer needed since we hardcoded Supabase config
-    console.info('ENV CHECK', {
-      hasUrl: true,
-      hasKey: true,
-      status: envCheck(),
-    });
-  }, []);
 
   useEffect(() => {
     ensureSession()
@@ -30,27 +20,13 @@ const App = () => {
       .finally(() => setAuthReady(true));
   }, []);
 
-  useEffect(() => {
-    if (!authReady) return;
-
-    (async () => {
-      try {
-        const { data, error } = await supabase.from('profiles').select('id').limit(1);
-        console.info('SUPABASE PROBE', { rows: data?.length ?? 0, error });
-      } catch (probeError) {
-        console.error('SUPABASE PROBE CRASH', probeError);
-      }
-    })();
-  }, [authReady]);
 
   if (!authReady) {
     return <div className="p-4 text-sm">Booting…</div>;
   }
 
   return (
-    <>
-      <DebugBanner />
-      <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <Toaster />
           <Sonner />
@@ -62,7 +38,6 @@ const App = () => {
           </BrowserRouter>
         </TooltipProvider>
       </QueryClientProvider>
-    </>
   );
 };
 

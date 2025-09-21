@@ -6,8 +6,6 @@ import type { Database } from './types';
 const SUPABASE_URL = 'https://bujbbvcexwscnhgrcezn.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1amJidmNleHdzY25oZ3JjZXpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc1MzA1NjksImV4cCI6MjA3MzEwNjU2OX0.Wt9jqx64hYBr9apVpYy47QZiCio3rEwI8raY55x8hoY';
 
-// Debug: Configuration loaded
-console.log('Supabase client initialized successfully');
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
