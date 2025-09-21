@@ -399,47 +399,56 @@ function calculateUrgencyValueScore(subtask: any, usedDomains: Set<string>, last
 }
 
 async function seedMindmap(supabase: any, authHeader: string, payload: any) {
+  const { markdownContent } = payload;
   const { data: { user } } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
   if (!user) throw new Error('Unauthorized');
 
   // Clear existing nodes
   await supabase.from('nodes').delete().eq('user_id', user.id);
 
-  const mindmapData = [
-    { title: 'Active Workflows', domain: 'general', parentId: null, x: 0, y: 0 },
-    { title: 'Programming', domain: 'Programming', parentId: 'Active Workflows', x: -300, y: 100 },
-    { title: 'Trading System of Agents', domain: 'Programming', parentId: 'Programming', x: -500, y: 200 },
-    { title: 'n8n', domain: 'Programming', parentId: 'Programming', x: -400, y: 200 },
-    { title: 'Heilbronn - C', domain: 'Programming', parentId: 'Programming', x: -300, y: 200 },
-    { title: 'Read Textbook', domain: 'Programming', parentId: 'Heilbronn - C', x: -300, y: 280 },
-    { title: 'Freecodecamp - Responsive Web Design', domain: 'Programming', parentId: 'Programming', x: -200, y: 200 },
-    { title: 'Complete registration form', domain: 'Programming', parentId: 'Freecodecamp - Responsive Web Design', x: -200, y: 280 },
-    { title: 'Excel Course', domain: 'Admin', parentId: 'Active Workflows', x: -100, y: 100 },
-    { title: 'Complete 1st run making notes', domain: 'Admin', parentId: 'Excel Course', x: -100, y: 180 },
-    { title: 'Self-hygene', domain: 'Health', parentId: 'Active Workflows', x: 100, y: 100 },
-    { title: 'Hair', domain: 'Health', parentId: 'Self-hygene', x: 50, y: 180 },
-    { title: 'teeth', domain: 'Health', parentId: 'Self-hygene', x: 100, y: 180 },
-    { title: 'Gym', domain: 'Health', parentId: 'Self-hygene', x: 150, y: 180 },
-    { title: 'Complex Systems reading / Logic', domain: 'Reading', parentId: 'Active Workflows', x: 300, y: 100 },
-    { title: 'Dune - Herbert', domain: 'Reading', parentId: 'Complex Systems reading / Logic', x: 200, y: 200 },
-    { title: 'Introduction to the Theory of Complex Systems', domain: 'Reading', parentId: 'Complex Systems reading / Logic', x: 300, y: 200 },
-    { title: 'The Logical Thinking Process: A Systems Approach to Complex Problem Solving', domain: 'Reading', parentId: 'Complex Systems reading / Logic', x: 400, y: 200 },
-    { title: 'Read Assassin\'s Creed', domain: 'Reading', parentId: 'Complex Systems reading / Logic', x: 250, y: 280 },
-    { title: 'Systems Design', domain: 'Reading', parentId: 'Complex Systems reading / Logic', x: 350, y: 280 },
-    { title: 'Reading', domain: 'Reading', parentId: 'Active Workflows', x: 500, y: 100 },
-    { title: 'Psychology', domain: 'Reading', parentId: 'Reading', x: 450, y: 180 },
-    { title: 'History', domain: 'Reading', parentId: 'Reading', x: 500, y: 180 },
-    { title: 'Epoche 2', domain: 'Reading', parentId: 'Reading', x: 550, y: 180 },
-    { title: 'DJ', domain: 'Music', parentId: 'Active Workflows', x: -300, y: -100 },
-    { title: 'Ableton', domain: 'Music', parentId: 'Active Workflows', x: -200, y: -100 },
-    { title: 'Driving License', domain: 'Admin', parentId: 'Active Workflows', x: -100, y: -100 },
-    { title: 'Practice questions till exam', domain: 'Admin', parentId: 'Driving License', x: -100, y: -180 },
-    { title: 'Vendita Locali', domain: 'Business', parentId: 'Active Workflows', x: 0, y: -100 },
-    { title: 'CRM for Sport Trainers', domain: 'Business', parentId: 'Active Workflows', x: 100, y: -100 },
-    { title: 'Viatore', domain: 'Business', parentId: 'Active Workflows', x: 200, y: -100 },
-    { title: 'Perizia indipendente - Garage', domain: 'Admin', parentId: 'Active Workflows', x: 300, y: -100 },
-    { title: 'Florio - serranda + interessi', domain: 'Admin', parentId: 'Active Workflows', x: 400, y: -100 }
-  ];
+  let mindmapData;
+
+  if (markdownContent && markdownContent.trim()) {
+    // Parse markdown content
+    mindmapData = parseMarkdownToNodes(markdownContent);
+  } else {
+    // Use default template
+    mindmapData = [
+      { title: 'Active Workflows', domain: 'general', parentId: null, x: 0, y: 0 },
+      { title: 'Programming', domain: 'Programming', parentId: 'Active Workflows', x: -300, y: 100 },
+      { title: 'Trading System of Agents', domain: 'Programming', parentId: 'Programming', x: -500, y: 200 },
+      { title: 'n8n', domain: 'Programming', parentId: 'Programming', x: -400, y: 200 },
+      { title: 'Heilbronn - C', domain: 'Programming', parentId: 'Programming', x: -300, y: 200 },
+      { title: 'Read Textbook', domain: 'Programming', parentId: 'Heilbronn - C', x: -300, y: 280 },
+      { title: 'Freecodecamp - Responsive Web Design', domain: 'Programming', parentId: 'Programming', x: -200, y: 200 },
+      { title: 'Complete registration form', domain: 'Programming', parentId: 'Freecodecamp - Responsive Web Design', x: -200, y: 280 },
+      { title: 'Excel Course', domain: 'Admin', parentId: 'Active Workflows', x: -100, y: 100 },
+      { title: 'Complete 1st run making notes', domain: 'Admin', parentId: 'Excel Course', x: -100, y: 180 },
+      { title: 'Self-hygene', domain: 'Health', parentId: 'Active Workflows', x: 100, y: 100 },
+      { title: 'Hair', domain: 'Health', parentId: 'Self-hygene', x: 50, y: 180 },
+      { title: 'teeth', domain: 'Health', parentId: 'Self-hygene', x: 100, y: 180 },
+      { title: 'Gym', domain: 'Health', parentId: 'Self-hygene', x: 150, y: 180 },
+      { title: 'Complex Systems reading / Logic', domain: 'Reading', parentId: 'Active Workflows', x: 300, y: 100 },
+      { title: 'Dune - Herbert', domain: 'Reading', parentId: 'Complex Systems reading / Logic', x: 200, y: 200 },
+      { title: 'Introduction to the Theory of Complex Systems', domain: 'Reading', parentId: 'Complex Systems reading / Logic', x: 300, y: 200 },
+      { title: 'The Logical Thinking Process: A Systems Approach to Complex Problem Solving', domain: 'Reading', parentId: 'Complex Systems reading / Logic', x: 400, y: 200 },
+      { title: 'Read Assassin\'s Creed', domain: 'Reading', parentId: 'Complex Systems reading / Logic', x: 250, y: 280 },
+      { title: 'Systems Design', domain: 'Reading', parentId: 'Complex Systems reading / Logic', x: 350, y: 280 },
+      { title: 'Reading', domain: 'Reading', parentId: 'Active Workflows', x: 500, y: 100 },
+      { title: 'Psychology', domain: 'Reading', parentId: 'Reading', x: 450, y: 180 },
+      { title: 'History', domain: 'Reading', parentId: 'Reading', x: 500, y: 180 },
+      { title: 'Epoche 2', domain: 'Reading', parentId: 'Reading', x: 550, y: 180 },
+      { title: 'DJ', domain: 'Music', parentId: 'Active Workflows', x: -300, y: -100 },
+      { title: 'Ableton', domain: 'Music', parentId: 'Active Workflows', x: -200, y: -100 },
+      { title: 'Driving License', domain: 'Admin', parentId: 'Active Workflows', x: -100, y: -100 },
+      { title: 'Practice questions till exam', domain: 'Admin', parentId: 'Driving License', x: -100, y: -180 },
+      { title: 'Vendita Locali', domain: 'Business', parentId: 'Active Workflows', x: 0, y: -100 },
+      { title: 'CRM for Sport Trainers', domain: 'Business', parentId: 'Active Workflows', x: 100, y: -100 },
+      { title: 'Viatore', domain: 'Business', parentId: 'Active Workflows', x: 200, y: -100 },
+      { title: 'Perizia indipendente - Garage', domain: 'Admin', parentId: 'Active Workflows', x: 300, y: -100 },
+      { title: 'Florio - serranda + interessi', domain: 'Admin', parentId: 'Active Workflows', x: 400, y: -100 }
+    ];
+  }
 
   // Create nodes in order (parents first)
   const nodeIdMap = new Map<string, string>();
@@ -505,4 +514,64 @@ async function seedMindmap(supabase: any, authHeader: string, payload: any) {
     JSON.stringify({ nodesCreated: nodeIdMap.size }),
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
   );
+}
+
+function parseMarkdownToNodes(markdown: string): any[] {
+  const lines = markdown.split('\n').filter(line => line.trim());
+  const nodes: any[] = [];
+  const stack: string[] = []; // Track parent hierarchy
+  
+  let x = 0, y = 0;
+  const spacing = 200;
+  
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    
+    // Count heading level (# ## ### etc.)
+    const headingMatch = trimmed.match(/^(#{1,6})\s+(.+)$/);
+    if (!headingMatch) continue;
+    
+    const level = headingMatch[1].length;
+    const title = headingMatch[2];
+    
+    // Adjust stack to current level
+    while (stack.length >= level) {
+      stack.pop();
+    }
+    
+    // Determine parent
+    const parentId = stack.length > 0 ? stack[stack.length - 1] : null;
+    
+    // Determine domain from context or use title
+    const domain = getDomainFromTitle(title);
+    
+    // Calculate position
+    const nodeX = level * spacing + (Math.random() - 0.5) * 100;
+    const nodeY = y + (Math.random() - 0.5) * 50;
+    
+    nodes.push({
+      title,
+      domain,
+      parentId,
+      x: nodeX,
+      y: nodeY
+    });
+    
+    stack.push(title);
+    y += 120; // Vertical spacing
+  }
+  
+  return nodes;
+}
+
+function getDomainFromTitle(title: string): string {
+  const lower = title.toLowerCase();
+  if (lower.includes('program') || lower.includes('code') || lower.includes('dev')) return 'Programming';
+  if (lower.includes('read') || lower.includes('book') || lower.includes('study')) return 'Reading';
+  if (lower.includes('health') || lower.includes('gym') || lower.includes('fitness')) return 'Health';
+  if (lower.includes('admin') || lower.includes('license') || lower.includes('document')) return 'Admin';
+  if (lower.includes('business') || lower.includes('market') || lower.includes('sell')) return 'Business';
+  if (lower.includes('music') || lower.includes('dj') || lower.includes('audio')) return 'Music';
+  return 'General';
 }
