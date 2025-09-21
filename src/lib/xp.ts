@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { ensureSession } from './ensureSession';
 
 export async function awardXP(amount: number, source = 'session', meta?: any) {

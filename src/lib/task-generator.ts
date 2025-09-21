@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 
 export async function generateSubtasks(description: string) {
   const { data, error } = await supabase.functions.invoke('task-generator', {
