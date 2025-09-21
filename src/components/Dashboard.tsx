@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { AppState, Task, SphereNode } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,7 @@ import { WorkSessionTimer } from './WorkSessionTimer';
 import { Analytics } from './Analytics';
 import { TaskGenerator } from './TaskGenerator';
 import { getMotivationalMessage } from '@/lib/xp-system';
-import { Play, Target, TrendingUp, Zap, Brain, Heart, Eye } from 'lucide-react';
+import { Play, Target, TrendingUp, Zap, Brain, Eye } from 'lucide-react';
 
 interface DashboardProps {
   state: AppState;
@@ -26,40 +26,54 @@ interface DashboardProps {
   onAddTask?: (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => void;
 }
 
-export const Dashboard = ({ 
-  state, 
-  onTaskComplete, 
+export const Dashboard = ({
+  state,
+  onTaskComplete,
   onTaskUpdate,
   onNodeClick,
   onNodeUpdate,
   onStartWorkSession,
   onEndWorkSession,
-  onAddTask
+  onAddTask,
 }: DashboardProps) => {
   const [activeTab, setActiveTab] = useState('overview');
   const [isDungeonMode, setIsDungeonMode] = useState(false);
+  const [selectedNode, setSelectedNode] = useState<SphereNode | null>(null);
 
   const { user, nodes, tasks, achievements } = state;
-  
+
   const activeTasks = tasks.filter(t => t.status === 'pending' || t.status === 'in_progress');
-  const completedTasksToday = tasks.filter(t => 
-    t.status === 'completed' && 
-    t.completedAt && 
+  const completedTasksToday = tasks.filter(t =>
+    t.status === 'completed' &&
+    t.completedAt &&
     new Date(t.completedAt).toDateString() === new Date().toDateString()
   );
 
   const availableNodes = nodes.filter(n => n.status === 'available' || n.status === 'in_progress');
   const completedNodes = nodes.filter(n => n.status === 'completed' || n.status === 'mastered');
-  
+
   const unlockedAchievements = achievements.filter(a => a.unlockedAt);
   const motivationalMessage = getMotivationalMessage(user);
 
   const totalNodesCount = nodes.length;
   const overallProgress = (completedNodes.length / totalNodesCount) * 100;
 
+  const nodeTasks = useMemo(
+    () => (selectedNode ? tasks.filter(task => task.nodeId === selectedNode.id) : []),
+    [selectedNode, tasks]
+  );
+  const completedNodeTasks = useMemo(
+    () => nodeTasks.filter(task => task.status === 'completed').length,
+    [nodeTasks]
+  );
+
+  const handleNodeSelect = (node: SphereNode) => {
+    setSelectedNode(node);
+    onNodeClick(node);
+  };
+
   return (
     <div className="container mx-auto p-4 space-y-6">
-      {/* Header */}
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
@@ -67,8 +81,8 @@ export const Dashboard = ({
           </h1>
           <p className="text-muted-foreground mt-1">{motivationalMessage}</p>
         </div>
-        <Button 
-          variant={isDungeonMode ? "destructive" : "default"} 
+        <Button
+          variant={isDungeonMode ? 'destructive' : 'default'}
           onClick={() => setIsDungeonMode(!isDungeonMode)}
           className="glow"
         >
@@ -77,10 +91,8 @@ export const Dashboard = ({
         </Button>
       </div>
 
-      {/* XP Bar */}
       <XPBar user={user} />
 
-      {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="bg-gradient-to-br from-card to-primary/5">
           <CardHeader className="pb-2">
@@ -143,10 +155,8 @@ export const Dashboard = ({
         </Card>
       </div>
 
-      {/* Pillars Progress */}
       <PillarsProgress user={user} />
 
-      {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -157,28 +167,25 @@ export const Dashboard = ({
 
         <TabsContent value="overview" className="space-y-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Active Tasks */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Play className="w-5 h-5" />
                   Active Tasks
                 </CardTitle>
-                <CardDescription>
-                  Your current focus areas
-                </CardDescription>
+                <CardDescription>Your current focus areas</CardDescription>
               </CardHeader>
               <CardContent>
-                <TaskList 
-                  tasks={activeTasks.slice(0, 5)} 
+                <TaskList
+                  tasks={activeTasks.slice(0, 5)}
                   onTaskComplete={onTaskComplete}
                   onTaskUpdate={onTaskUpdate}
                   compact
                 />
                 {activeTasks.length > 5 && (
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     className="w-full mt-2"
                     onClick={() => setActiveTab('tasks')}
                   >
@@ -188,23 +195,20 @@ export const Dashboard = ({
               </CardContent>
             </Card>
 
-            {/* Available Nodes */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Target className="w-5 h-5" />
                   Available Nodes
                 </CardTitle>
-                <CardDescription>
-                  Ready to be conquered
-                </CardDescription>
+                <CardDescription>Ready to be conquered</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 {availableNodes.slice(0, 3).map(node => (
-                  <div 
+                  <div
                     key={node.id}
                     className="flex items-center justify-between p-3 rounded-lg border hover:bg-accent/50 cursor-pointer transition-colors"
-                    onClick={() => onNodeClick(node)}
+                    onClick={() => setActiveTab('sphere')}
                   >
                     <div className="flex-1">
                       <h4 className="font-medium text-sm">{node.title}</h4>
@@ -218,47 +222,72 @@ export const Dashboard = ({
                     </Badge>
                   </div>
                 ))}
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="w-full"
-                  onClick={() => setActiveTab('sphere')}
-                >
+                <Button variant="ghost" size="sm" className="w-full" onClick={() => setActiveTab('sphere')}>
                   View sphere grid
                 </Button>
               </CardContent>
             </Card>
           </div>
 
-          {/* Work Session Timer */}
-          <WorkSessionTimer 
-            onStart={onStartWorkSession}
-            onEnd={onEndWorkSession}
-            isDungeonMode={isDungeonMode}
-          />
+          <WorkSessionTimer onStart={onStartWorkSession} onEnd={onEndWorkSession} isDungeonMode={isDungeonMode} />
         </TabsContent>
 
         <TabsContent value="tasks" className="space-y-6">
           {onAddTask && (
             <TaskGenerator
               userLevel={user.level}
-              currentSkills={['JavaScript', 'React', 'TypeScript']} // Make this dynamic based on completed nodes
+              currentSkills={['JavaScript', 'React', 'TypeScript']}
               onTaskGenerated={onAddTask}
             />
           )}
-          <TaskList 
-            tasks={activeTasks} 
+          <TaskList
+            tasks={activeTasks}
             onTaskComplete={onTaskComplete}
             onTaskUpdate={onTaskUpdate}
           />
         </TabsContent>
 
-        <TabsContent value="sphere">
-          <SphereGrid 
+        <TabsContent value="sphere" className="space-y-4">
+          <SphereGrid
             nodes={nodes}
-            onNodeClick={onNodeClick}
+            tasks={tasks}
+            onNodeClick={handleNodeSelect}
             onNodeUpdate={onNodeUpdate}
           />
+
+          {selectedNode && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Badge variant="outline" className="capitalize">
+                    {selectedNode.branch}
+                  </Badge>
+                  {selectedNode.title}
+                </CardTitle>
+                <CardDescription>{selectedNode.description}</CardDescription>
+                <div className="mt-3 space-y-2">
+                  <Progress value={selectedNode.progress} className="h-2" />
+                  <p className="text-xs text-muted-foreground">
+                    {selectedNode.progress}% complete • {completedNodeTasks}/{nodeTasks.length} tasks finished
+                  </p>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {nodeTasks.length > 0 ? (
+                  <TaskList
+                    tasks={nodeTasks}
+                    onTaskComplete={onTaskComplete}
+                    onTaskUpdate={onTaskUpdate}
+                    contextNodeId={selectedNode.id}
+                  />
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    No tasks linked yet. Generate subtasks or add one manually to push this node forward.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="analytics">
