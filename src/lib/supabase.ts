@@ -1,19 +1,11 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
-const viteEnv = typeof import.meta !== 'undefined' ? (import.meta as any).env ?? {} : {};
-const nodeEnv = typeof process !== 'undefined' ? process.env ?? {} : {};
-
-const supabaseUrl = viteEnv.VITE_SUPABASE_URL ?? nodeEnv.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = viteEnv.VITE_SUPABASE_ANON_KEY ?? nodeEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-const envStatus = supabaseUrl && supabaseAnonKey ? 'ok' : 'missing';
+// Supabase configuration - using direct values as per Lovable guidelines
+const supabaseUrl = 'https://bujbbvcexwscnhgrcezn.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1amJidmNleHdzY25oZ3JjZXpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc1MzA1NjksImV4cCI6MjA3MzEwNjU2OX0.Wt9jqx64hYBr9apVpYy47QZiCio3rEwI8raY55x8hoY';
 
 export function envCheck() {
-  return envStatus;
-}
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('[Supabase] Missing Supabase URL or anon key at runtime. Ensure VITE_SUPABASE_* or NEXT_PUBLIC_SUPABASE_* are set.');
+  return 'ok';
 }
 
 const storage =
