@@ -265,7 +265,11 @@ export class SupabaseDataLayer {
       workSessionLength: data.work_session_length,
       reminderTime: data.reminder_time,
       soundEnabled: data.sound_enabled,
-      theme: data.theme as 'dark' | 'light'
+      theme: data.theme as 'dark' | 'light',
+      dayStart: '06:00',
+      dayEnd: '19:00',
+      sprintDuration: 45,
+      breakDuration: 15,
     };
   }
 
@@ -295,7 +299,11 @@ export class SupabaseDataLayer {
       workSessionLength: data.work_session_length,
       reminderTime: data.reminder_time,
       soundEnabled: data.sound_enabled,
-      theme: data.theme as 'dark' | 'light'
+      theme: data.theme as 'dark' | 'light',
+      dayStart: '06:00',
+      dayEnd: '19:00',
+      sprintDuration: 45,
+      breakDuration: 15,
     };
   }
 
@@ -370,24 +378,27 @@ export class SupabaseDataLayer {
   }
 
   private mapDbTaskToTask(task: DbTask): Task {
-    return {
-      id: task.id,
-      title: task.title,
-      description: task.description || '',
-      category: task.category as any,
-      difficulty: task.difficulty as any,
-      priority: task.priority as any,
-      xpReward: task.xp_reward,
-      estimatedTime: task.estimated_time,
-      actualTime: task.actual_time || undefined,
-      nodeId: task.node_id || undefined,
-      status: task.status as any,
-      tags: task.tags || [],
-      createdAt: task.created_at,
-      updatedAt: task.updated_at,
-      completedAt: task.completed_at || undefined,
-      dueDate: task.due_date || undefined
-    };
+      return {
+        id: task.id,
+        title: task.title,
+        description: task.description || '',
+        category: task.category as any,
+        difficulty: task.difficulty as any,
+        priority: task.priority as any,
+        xpReward: task.xp_reward,
+        estimatedTime: task.estimated_time,
+        actualTime: task.actual_time || undefined,
+        nodeId: task.node_id || undefined,
+        status: task.status as any,
+        tags: task.tags || [],
+        createdAt: task.created_at,
+        updatedAt: task.updated_at,
+        completedAt: task.completed_at || undefined,
+        dueDate: task.due_date || undefined,
+        context: (task as any).context || 'desk',
+        energy: (task as any).energy || 'medium',
+        valueScore: (task as any).value_score || 3,
+      };
   }
 
   private mapDbNodeToSphereNode(node: DbNode): SphereNode {
@@ -409,7 +420,9 @@ export class SupabaseDataLayer {
       progress: node.progress,
       timeSpent: node.time_spent,
       completedAt: node.completed_at || undefined,
-      masteredAt: node.mastered_at || undefined
+      masteredAt: node.mastered_at || undefined,
+      domain: (node as any).domain || 'general',
+      goalType: (node as any).goal_type || 'project'
     };
   }
 

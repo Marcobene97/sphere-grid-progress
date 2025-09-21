@@ -53,15 +53,65 @@ export type Database = {
         }
         Relationships: []
       }
+      day_plan_slots: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          locked: boolean | null
+          slot_end: string
+          slot_start: string
+          subtask_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          locked?: boolean | null
+          slot_end: string
+          slot_start: string
+          subtask_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          locked?: boolean | null
+          slot_end?: string
+          slot_start?: string
+          subtask_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "day_plan_slots_subtask_id_fkey"
+            columns: ["subtask_id"]
+            isOneToOne: false
+            referencedRelation: "subtasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       nodes: {
         Row: {
           branch: Database["public"]["Enums"]["node_branch"]
           category: Database["public"]["Enums"]["node_category"]
           completed_at: string | null
           created_at: string
+          deadline: string | null
           description: string | null
+          domain: string | null
+          est_total_minutes: number | null
+          goal_type: string | null
           id: string
           mastered_at: string | null
+          metadata: Json | null
+          parent_id: string | null
           position_x: number
           position_y: number
           prerequisites: string[] | null
@@ -81,9 +131,15 @@ export type Database = {
           category: Database["public"]["Enums"]["node_category"]
           completed_at?: string | null
           created_at?: string
+          deadline?: string | null
           description?: string | null
+          domain?: string | null
+          est_total_minutes?: number | null
+          goal_type?: string | null
           id?: string
           mastered_at?: string | null
+          metadata?: Json | null
+          parent_id?: string | null
           position_x?: number
           position_y?: number
           prerequisites?: string[] | null
@@ -103,9 +159,15 @@ export type Database = {
           category?: Database["public"]["Enums"]["node_category"]
           completed_at?: string | null
           created_at?: string
+          deadline?: string | null
           description?: string | null
+          domain?: string | null
+          est_total_minutes?: number | null
+          goal_type?: string | null
           id?: string
           mastered_at?: string | null
+          metadata?: Json | null
+          parent_id?: string | null
           position_x?: number
           position_y?: number
           prerequisites?: string[] | null
@@ -120,7 +182,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "nodes_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "nodes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -350,15 +420,70 @@ export type Database = {
         }
         Relationships: []
       }
+      subtasks: {
+        Row: {
+          created_at: string
+          earliest_start: string | null
+          est_minutes: number
+          hard_window: unknown | null
+          id: string
+          seq: number | null
+          status: string
+          tags: string[] | null
+          task_id: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          earliest_start?: string | null
+          est_minutes?: number
+          hard_window?: unknown | null
+          id?: string
+          seq?: number | null
+          status?: string
+          tags?: string[] | null
+          task_id: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          earliest_start?: string | null
+          est_minutes?: number
+          hard_window?: unknown | null
+          id?: string
+          seq?: number | null
+          status?: string
+          tags?: string[] | null
+          task_id?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subtasks_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           actual_time: number | null
           category: Database["public"]["Enums"]["task_category"]
           completed_at: string | null
+          context: string | null
           created_at: string
           description: string | null
           difficulty: Database["public"]["Enums"]["task_difficulty"]
           due_date: string | null
+          energy: string | null
           estimated_time: number
           id: string
           node_id: string | null
@@ -368,16 +493,19 @@ export type Database = {
           title: string
           updated_at: string
           user_id: string
+          value_score: number | null
           xp_reward: number
         }
         Insert: {
           actual_time?: number | null
           category: Database["public"]["Enums"]["task_category"]
           completed_at?: string | null
+          context?: string | null
           created_at?: string
           description?: string | null
           difficulty: Database["public"]["Enums"]["task_difficulty"]
           due_date?: string | null
+          energy?: string | null
           estimated_time?: number
           id?: string
           node_id?: string | null
@@ -387,16 +515,19 @@ export type Database = {
           title: string
           updated_at?: string
           user_id: string
+          value_score?: number | null
           xp_reward?: number
         }
         Update: {
           actual_time?: number | null
           category?: Database["public"]["Enums"]["task_category"]
           completed_at?: string | null
+          context?: string | null
           created_at?: string
           description?: string | null
           difficulty?: Database["public"]["Enums"]["task_difficulty"]
           due_date?: string | null
+          energy?: string | null
           estimated_time?: number
           id?: string
           node_id?: string | null
@@ -406,6 +537,7 @@ export type Database = {
           title?: string
           updated_at?: string
           user_id?: string
+          value_score?: number | null
           xp_reward?: number
         }
         Relationships: [

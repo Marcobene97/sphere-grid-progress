@@ -43,6 +43,13 @@ export interface SphereNode {
   timeSpent: number; // minutes
   completedAt?: string;
   masteredAt?: string;
+  // Action Counsellor fields
+  parentId?: string;
+  domain: string;
+  goalType: 'habit' | 'project' | 'one-off';
+  deadline?: string;
+  estTotalMinutes?: number;
+  metadata?: Record<string, any>;
 }
 
 export type NodeCategory = 'skill' | 'habit' | 'milestone' | 'project';
@@ -67,6 +74,35 @@ export interface Task {
   updatedAt: string;
   completedAt?: string;
   dueDate?: string;
+  // Action Counsellor fields
+  context: 'desk' | 'gym' | 'errand' | 'reading' | 'quiet';
+  energy: 'low' | 'medium' | 'high';
+  valueScore: number; // 1-5 perceived impact
+}
+
+export interface Subtask {
+  id: string;
+  taskId: string;
+  title: string;
+  status: 'todo' | 'in_progress' | 'done' | 'blocked';
+  estMinutes: number;
+  earliestStart?: string;
+  hardWindow?: { start: string; end: string };
+  tags: string[];
+  seq: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DayPlanSlot {
+  id: string;
+  date: string;
+  slotStart: string;
+  slotEnd: string;
+  subtaskId?: string;
+  locked: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export type TaskCategory = 'programming' | 'finance' | 'music' | 'general';
@@ -115,6 +151,8 @@ export interface AppState {
   user: User;
   nodes: SphereNode[];
   tasks: Task[];
+  subtasks: Subtask[];
+  dayPlanSlots: DayPlanSlot[];
   workSessions: WorkSession[];
   achievements: Achievement[];
   analytics: Analytics;
@@ -124,6 +162,11 @@ export interface AppState {
     reminderTime: string;
     soundEnabled: boolean;
     theme: 'dark' | 'light';
+    // Action Counsellor settings
+    dayStart: string;
+    dayEnd: string;
+    sprintDuration: number;
+    breakDuration: number;
   };
 }
 

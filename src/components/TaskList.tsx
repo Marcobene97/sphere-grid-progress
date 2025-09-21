@@ -49,6 +49,9 @@ export const TaskList = ({ tasks, onTaskComplete, onTaskUpdate, compact = false,
       tags: newTask.tags.split(',').map(tag => tag.trim()).filter(Boolean),
       xpReward: getXPReward(newTask.difficulty, newTask.priority),
       status: 'pending',
+      context: 'desk',
+      energy: 'medium',
+      valueScore: 3,
     };
 
     onTaskUpdate('new', task as any);

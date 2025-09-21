@@ -25,7 +25,11 @@ const defaultSettings = {
   workSessionLength: 25,
   reminderTime: '09:00',
   soundEnabled: true,
-  theme: 'dark' as const
+  theme: 'dark' as const,
+  dayStart: '06:00',
+  dayEnd: '19:00',
+  sprintDuration: 45,
+  breakDuration: 15,
 };
 
 export const useSupabaseAppState = () => {
@@ -33,6 +37,8 @@ export const useSupabaseAppState = () => {
     user: defaultUser,
     nodes: [],
     tasks: [],
+    subtasks: [],
+    dayPlanSlots: [],
     workSessions: [],
     achievements: [],
     analytics: {

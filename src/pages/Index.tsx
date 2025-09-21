@@ -125,6 +125,8 @@ const Index = () => {
         onStartWorkSession={startWorkSession}
         onEndWorkSession={handleWorkSessionEnd}
         onAddTask={addTask}
+        onSubtasksUpdate={() => {}}
+        onDayPlanUpdate={() => {}}
       />
       
       <RewardNotification 

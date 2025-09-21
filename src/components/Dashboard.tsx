@@ -11,7 +11,8 @@ import { TaskList } from './TaskList';
 import { SphereGrid } from './SphereGrid';
 import { WorkSessionTimer } from './WorkSessionTimer';
 import { Analytics } from './Analytics';
-import { TaskGenerator } from './TaskGenerator';
+import { DailyPlan } from './DailyPlan';
+import { NodeSidePanel } from './NodeSidePanel';
 import { getMotivationalMessage } from '@/lib/xp-system';
 import { Play, Target, TrendingUp, Zap, Brain, Eye } from 'lucide-react';
 
@@ -24,6 +25,8 @@ interface DashboardProps {
   onStartWorkSession: (taskId?: string, nodeId?: string) => any;
   onEndWorkSession: (sessionId: string, focusScore: number, notes?: string, analysis?: any) => void;
   onAddTask?: (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  onSubtasksUpdate?: () => void;
+  onDayPlanUpdate?: () => void;
 }
 
 export const Dashboard = ({
@@ -35,12 +38,14 @@ export const Dashboard = ({
   onStartWorkSession,
   onEndWorkSession,
   onAddTask,
+  onSubtasksUpdate,
+  onDayPlanUpdate,
 }: DashboardProps) => {
   const [activeTab, setActiveTab] = useState('overview');
   const [isDungeonMode, setIsDungeonMode] = useState(false);
   const [selectedNode, setSelectedNode] = useState<SphereNode | null>(null);
 
-  const { user, nodes, tasks, achievements } = state;
+  const { user, nodes, tasks, achievements, subtasks, dayPlanSlots } = state;
 
   const activeTasks = tasks.filter(t => t.status === 'pending' || t.status === 'in_progress');
   const completedTasksToday = tasks.filter(t =>
@@ -158,10 +163,11 @@ export const Dashboard = ({
       <PillarsProgress user={user} />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="tasks">Tasks</TabsTrigger>
           <TabsTrigger value="sphere">Sphere Grid</TabsTrigger>
+          <TabsTrigger value="daily">Daily Plan</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
         </TabsList>
 
@@ -233,13 +239,6 @@ export const Dashboard = ({
         </TabsContent>
 
         <TabsContent value="tasks" className="space-y-6">
-          {onAddTask && (
-            <TaskGenerator
-              userLevel={user.level}
-              currentSkills={['JavaScript', 'React', 'TypeScript']}
-              onTaskGenerated={onAddTask}
-            />
-          )}
           <TaskList
             tasks={activeTasks}
             onTaskComplete={onTaskComplete}
@@ -248,46 +247,36 @@ export const Dashboard = ({
         </TabsContent>
 
         <TabsContent value="sphere" className="space-y-4">
-          <SphereGrid
-            nodes={nodes}
-            tasks={tasks}
-            onNodeClick={handleNodeSelect}
-            onNodeUpdate={onNodeUpdate}
-          />
+          <div className="flex gap-4">
+            <div className="flex-1">
+              <SphereGrid
+                nodes={nodes}
+                tasks={tasks}
+                onNodeClick={handleNodeSelect}
+                onNodeUpdate={onNodeUpdate}
+              />
+            </div>
+            {selectedNode && (
+              <NodeSidePanel
+                node={selectedNode}
+                tasks={tasks}
+                subtasks={subtasks}
+                onClose={() => setSelectedNode(null)}
+                onTaskUpdate={onTaskUpdate}
+                onSubtasksUpdate={onSubtasksUpdate || (() => {})}
+              />
+            )}
+          </div>
+        </TabsContent>
 
-          {selectedNode && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Badge variant="outline" className="capitalize">
-                    {selectedNode.branch}
-                  </Badge>
-                  {selectedNode.title}
-                </CardTitle>
-                <CardDescription>{selectedNode.description}</CardDescription>
-                <div className="mt-3 space-y-2">
-                  <Progress value={selectedNode.progress} className="h-2" />
-                  <p className="text-xs text-muted-foreground">
-                    {selectedNode.progress}% complete • {completedNodeTasks}/{nodeTasks.length} tasks finished
-                  </p>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {nodeTasks.length > 0 ? (
-                  <TaskList
-                    tasks={nodeTasks}
-                    onTaskComplete={onTaskComplete}
-                    onTaskUpdate={onTaskUpdate}
-                    contextNodeId={selectedNode.id}
-                  />
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    No tasks linked yet. Generate subtasks or add one manually to push this node forward.
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          )}
+        <TabsContent value="daily" className="space-y-4">
+          <DailyPlan
+            date={new Date().toISOString().split('T')[0]}
+            dayPlanSlots={dayPlanSlots}
+            subtasks={subtasks}
+            tasks={tasks}
+            onSlotsUpdate={onDayPlanUpdate || (() => {})}
+          />
         </TabsContent>
 
         <TabsContent value="analytics">
