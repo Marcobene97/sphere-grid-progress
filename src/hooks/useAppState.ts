@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { AppState, User, SphereNode, Task, WorkSession } from '@/types';
 import { loadState, saveState } from '@/lib/storage';
-import { updateUserProgress, calculateTaskXP, calculateFocusXP } from '@/lib/xp-system';
 import { ensureSession } from '@/lib/ensureSession';
 import { awardXP, loadTotalXP } from '@/lib/xp';
+import { xpForSession, xpForTask } from '@/lib/game/score';
 import { useXP } from './useXP';
 
 export const useAppState = () => {
@@ -90,17 +90,17 @@ export const useAppState = () => {
       const task = prev.tasks.find(t => t.id === taskId);
       if (!task) return prev;
 
-      const xpGained = calculateTaskXP(task, actualTime, focusScore, prev.user);
-      const updatedUser = updateUserProgress(
-        prev.user,
-        xpGained,
-        task.category as any,
-        {
-          consistency: task.category === 'general' ? 1 : 2,
-          focus: Math.floor(focusScore / 2),
-          resilience: actualTime > task.estimatedTime ? 1 : 0
-        }
-      );
+      // Map task difficulty to task size for XP calculation
+      const taskSize = task.difficulty === 'basic' ? 'small' : 
+                      task.difficulty === 'intermediate' ? 'medium' : 'big';
+      
+      const xpGained = xpForTask({ taskSize });
+      
+      // Simple progress update without complex XP calculations
+      const updatedUser = {
+        ...prev.user,
+        totalXP: prev.user.totalXP + xpGained
+      };
 
       // Award XP to Supabase (async, non-blocking)
       awardXP(xpGained, 'task', { 
@@ -199,23 +199,25 @@ export const useAppState = () => {
       const endTime = new Date();
       const duration = Math.floor((endTime.getTime() - new Date(session.startTime).getTime()) / (1000 * 60));
       
-      let focusXP = calculateFocusXP({ ...session, duration, focusScore });
+      // Map category to difficulty for XP calculation
+      const difficulty = session.category === 'programming' ? 'advanced' :
+                        session.category === 'finance' ? 'intermediate' : 'basic';
+      
+      let focusXP = xpForSession({ 
+        durationMin: duration, 
+        difficulty,
+        streakDays: prev.user.streaks.current 
+      });
       
       // Apply AI analysis bonuses
       if (analysis?.bonusXP) {
         focusXP += analysis.bonusXP;
       }
 
-      const updatedUser = updateUserProgress(
-        prev.user,
-        focusXP,
-        session.category,
-        { 
-          focus: Math.floor(focusScore / 2),
-          consistency: 1,
-          resilience: analysis ? 1 : 0
-        }
-      );
+      const updatedUser = {
+        ...prev.user,
+        totalXP: prev.user.totalXP + focusXP
+      };
 
       // Award XP to Supabase (async, non-blocking)
       awardXP(focusXP, 'session', {

@@ -2,7 +2,7 @@ import { User } from '@/types';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { useXP } from '@/hooks/useXP';
-import { levelFromXP } from '@/lib/levels';
+import { levelFromXP } from '@/lib/game/score';
 
 interface XPBarProps {
   user: User;
