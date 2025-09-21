@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Calendar, RefreshCw, Database, Settings } from 'lucide-react';
+import { Calendar, RefreshCw, Database, Settings, Upload } from 'lucide-react';
 import { useActionCounsellor } from '@/hooks/useActionCounsellor';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface QuickActionsProps {
   onPlanToday: () => void;
@@ -12,6 +13,7 @@ interface QuickActionsProps {
 
 export const QuickActions = ({ onPlanToday }: QuickActionsProps) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
   const { buildDayPlan, isGenerating } = useActionCounsellor();
   const { toast } = useToast();
 
@@ -31,6 +33,36 @@ export const QuickActions = ({ onPlanToday }: QuickActionsProps) => {
         description: "Failed to generate daily plan. Please try again.",
         variant: "destructive",
       });
+    }
+  };
+
+  const importMindmap = async () => {
+    setIsImporting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('action-counsellor', {
+        body: { 
+          action: 'seed_mindmap'
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Mindmap Imported!",
+        description: `Created ${data.nodesCreated} new nodes from your mind-map structure.`,
+      });
+      
+      setIsOpen(false);
+      window.location.reload();
+    } catch (error) {
+      console.error('Failed to import mindmap:', error);
+      toast({
+        title: "Import Failed",
+        description: "Failed to import mindmap. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsImporting(false);
     }
   };
 
@@ -90,6 +122,37 @@ export const QuickActions = ({ onPlanToday }: QuickActionsProps) => {
                     <>
                       <Calendar className="w-4 h-4 mr-2" />
                       Plan Today
+                    </>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-4">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Upload className="w-4 h-4" />
+                  Import Data
+                </CardTitle>
+                <CardDescription>
+                  Import tasks, domains, and goals from your mindmap structure
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button 
+                  onClick={importMindmap}
+                  disabled={isImporting}
+                  className="w-full"
+                >
+                  {isImporting ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                      Importing...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4 mr-2" />
+                      Import Mindmap
                     </>
                   )}
                 </Button>
