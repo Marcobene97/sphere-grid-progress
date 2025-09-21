@@ -35,7 +35,7 @@ export default defineConfig(({ mode }) => ({
         }
       }
     },
-    sourcemap: false,
+    sourcemap: true,
     minify: 'esbuild'
   },
   optimizeDeps: {
