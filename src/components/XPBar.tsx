@@ -1,6 +1,8 @@
 import { User } from '@/types';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import { useXP } from '@/hooks/useXP';
+import { levelFromXP } from '@/lib/levels';
 
 interface XPBarProps {
   user: User;
@@ -9,9 +11,12 @@ interface XPBarProps {
 }
 
 export const XPBar = ({ user, showRank = true, className = '' }: XPBarProps) => {
-  const xpInCurrentLevel = user.currentXP;
-  const xpForCurrentLevel = user.currentXP + user.xpToNextLevel;
-  const progressPercentage = xpForCurrentLevel > 0 ? (xpInCurrentLevel / xpForCurrentLevel) * 100 : 0;
+  const { xp } = useXP();
+  const levelInfo = levelFromXP(xp);
+  
+  const xpInCurrentLevel = xp - levelInfo.current;
+  const xpForNextLevel = levelInfo.next - levelInfo.current;
+  const progressPercentage = xpForNextLevel > 0 ? (xpInCurrentLevel / xpForNextLevel) * 100 : 100;
 
   const getRankColor = (rank: string) => {
     switch (rank) {
@@ -30,7 +35,7 @@ export const XPBar = ({ user, showRank = true, className = '' }: XPBarProps) => 
     <div className={`space-y-2 ${className}`}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold">Level {user.level}</span>
+          <span className="text-sm font-semibold">Level {levelInfo.level}</span>
           {showRank && (
             <Badge 
               variant="outline" 
@@ -45,7 +50,7 @@ export const XPBar = ({ user, showRank = true, className = '' }: XPBarProps) => 
           )}
         </div>
         <span className="text-xs text-muted-foreground">
-          {user.xpToNextLevel > 0 ? `${user.xpToNextLevel} XP to next level` : 'MAX LEVEL'}
+          {levelInfo.xpToNext > 0 ? `${levelInfo.xpToNext} XP to next level` : 'MAX LEVEL'}
         </span>
       </div>
       
@@ -56,7 +61,7 @@ export const XPBar = ({ user, showRank = true, className = '' }: XPBarProps) => 
         />
         <div className="absolute inset-0 flex items-center justify-center">
           <span className="text-xs font-medium text-primary-foreground drop-shadow-sm">
-            {xpInCurrentLevel.toLocaleString()} / {(xpInCurrentLevel + user.xpToNextLevel).toLocaleString()} XP
+            {xpInCurrentLevel.toLocaleString()} / {xpForNextLevel.toLocaleString()} XP
           </span>
         </div>
         
@@ -68,7 +73,7 @@ export const XPBar = ({ user, showRank = true, className = '' }: XPBarProps) => 
       </div>
       
       <div className="flex justify-between text-xs text-muted-foreground">
-        <span>Total XP: {user.totalXP.toLocaleString()}</span>
+        <span>Total XP: {xp.toLocaleString()}</span>
         <span>Streak: {user.streaks.current} days</span>
       </div>
     </div>

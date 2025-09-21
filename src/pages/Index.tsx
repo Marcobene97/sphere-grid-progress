@@ -3,10 +3,13 @@ import { useAppState } from '@/hooks/useAppState';
 import { Dashboard } from '@/components/Dashboard';
 import { SphereNode, Task } from '@/types';
 import { RewardNotification } from '@/components/RewardNotification';
+import { useXP } from '@/hooks/useXP';
+import { levelFromXP } from '@/lib/levels';
 
 const Index = () => {
   const { 
     state, 
+    isInitialized,
     updateNode, 
     addTask, 
     updateTask, 
@@ -15,7 +18,22 @@ const Index = () => {
     endWorkSession 
   } = useAppState();
   
+  const { xp } = useXP();
+  const levelInfo = levelFromXP(xp);
+  
   const [rewards, setRewards] = useState<any[]>([]);
+
+  // Show loading state while initializing session and XP
+  if (!isInitialized) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mb-4"></div>
+          <p className="text-muted-foreground">Initializing your progress...</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleTaskComplete = (taskId: string, actualTime: number, focusScore: number) => {
     const task = state.tasks.find(t => t.id === taskId);
@@ -34,14 +52,15 @@ const Index = () => {
         }
       ];
 
-      // Check for level up (simplified simulation)
-      if (Math.random() > 0.7) {
+      // Check for level up using synced XP
+      const currentLevel = levelInfo.level;
+      if (Math.random() > 0.7) { // Simplified level up check
         newRewards.push({
           id: `level-${Date.now()}`,
           type: 'level_up',
           title: 'Level Up!',
-          description: 'Your skills have grown stronger!',
-          value: state.user.level + 1,
+          description: `You've reached level ${currentLevel}!`,
+          value: currentLevel,
           color: 'gold'
         });
       }
