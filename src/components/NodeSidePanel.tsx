@@ -81,8 +81,9 @@ export const NodeSidePanel = ({
     }
   };
 
-  const getDomainColor = (domain: string) => {
-    switch (domain.toLowerCase()) {
+const getDomainColor = (domain: string | undefined) => {
+  if (!domain) return 'hsl(var(--muted))';
+  switch (domain.toLowerCase()) {
       case 'programming': return 'bg-gaming-info text-white';
       case 'reading': return 'bg-gaming-warning text-white';
       case 'health': return 'bg-gaming-success text-white';

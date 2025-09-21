@@ -15,6 +15,7 @@ import { ActionCounsellorStatus } from './ActionCounsellorStatus';
 import { MindmapSeeder } from './MindmapSeeder';
 import { DailyPlan } from './DailyPlan';
 import { NodeSidePanel } from './NodeSidePanel';
+import { QuickActions } from './QuickActions';
 import { getMotivationalMessage } from '@/lib/xp-system';
 import { Play, Target, TrendingUp, Zap, Brain, Eye } from 'lucide-react';
 
@@ -298,6 +299,8 @@ export const Dashboard = ({
           <Analytics state={state} />
         </TabsContent>
       </Tabs>
+      
+      <QuickActions onPlanToday={() => setActiveTab('daily')} />
     </div>
   );
 };
