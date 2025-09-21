@@ -11,6 +11,8 @@ import { TaskList } from './TaskList';
 import { SphereGrid } from './SphereGrid';
 import { WorkSessionTimer } from './WorkSessionTimer';
 import { Analytics } from './Analytics';
+import { ActionCounsellorStatus } from './ActionCounsellorStatus';
+import { MindmapSeeder } from './MindmapSeeder';
 import { DailyPlan } from './DailyPlan';
 import { NodeSidePanel } from './NodeSidePanel';
 import { getMotivationalMessage } from '@/lib/xp-system';
@@ -86,15 +88,24 @@ export const Dashboard = ({
           </h1>
           <p className="text-muted-foreground mt-1">{motivationalMessage}</p>
         </div>
-        <Button
-          variant={isDungeonMode ? 'destructive' : 'default'}
-          onClick={() => setIsDungeonMode(!isDungeonMode)}
-          className="glow"
-        >
-          {isDungeonMode ? <Eye className="w-4 h-4 mr-2" /> : <Zap className="w-4 h-4 mr-2" />}
-          {isDungeonMode ? 'Exit Dungeon' : 'Dungeon Mode'}
-        </Button>
+        <div className="flex items-center gap-4">
+          <Button
+            variant={isDungeonMode ? 'destructive' : 'default'}
+            onClick={() => setIsDungeonMode(!isDungeonMode)}
+            className="glow"
+          >
+            {isDungeonMode ? <Eye className="w-4 h-4 mr-2" /> : <Zap className="w-4 h-4 mr-2" />}
+            {isDungeonMode ? 'Exit Dungeon' : 'Dungeon Mode'}
+          </Button>
+        </div>
       </div>
+
+      <ActionCounsellorStatus 
+        nodes={nodes}
+        tasks={tasks}
+        subtasks={subtasks}
+        isActive={nodes.length > 0}
+      />
 
       <XPBar user={user} />
 
@@ -247,26 +258,30 @@ export const Dashboard = ({
         </TabsContent>
 
         <TabsContent value="sphere" className="space-y-4">
-          <div className="flex gap-4">
-            <div className="flex-1">
-              <SphereGrid
-                nodes={nodes}
-                tasks={tasks}
-                onNodeClick={handleNodeSelect}
-                onNodeUpdate={onNodeUpdate}
-              />
+          {nodes.length === 0 ? (
+            <MindmapSeeder onSeeded={() => window.location.reload()} />
+          ) : (
+            <div className="flex gap-4">
+              <div className="flex-1">
+                <SphereGrid
+                  nodes={nodes}
+                  tasks={tasks}
+                  onNodeClick={handleNodeSelect}
+                  onNodeUpdate={onNodeUpdate}
+                />
+              </div>
+              {selectedNode && (
+                <NodeSidePanel
+                  node={selectedNode}
+                  tasks={tasks}
+                  subtasks={subtasks}
+                  onClose={() => setSelectedNode(null)}
+                  onTaskUpdate={onTaskUpdate}
+                  onSubtasksUpdate={onSubtasksUpdate || (() => {})}
+                />
+              )}
             </div>
-            {selectedNode && (
-              <NodeSidePanel
-                node={selectedNode}
-                tasks={tasks}
-                subtasks={subtasks}
-                onClose={() => setSelectedNode(null)}
-                onTaskUpdate={onTaskUpdate}
-                onSubtasksUpdate={onSubtasksUpdate || (() => {})}
-              />
-            )}
-          </div>
+          )}
         </TabsContent>
 
         <TabsContent value="daily" className="space-y-4">

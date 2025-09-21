@@ -8,6 +8,8 @@ import { DayPlanSlot, Subtask, Task } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
+import { useActionCounsellor } from '@/hooks/useActionCounsellor';
+
 interface DailyPlanProps {
   date: string;
   dayPlanSlots: DayPlanSlot[];
@@ -17,7 +19,7 @@ interface DailyPlanProps {
 }
 
 export const DailyPlan = ({ date, dayPlanSlots, subtasks, tasks, onSlotsUpdate }: DailyPlanProps) => {
-  const [isGenerating, setIsGenerating] = useState(false);
+  const { isGenerating, buildDayPlan } = useActionCounsellor();
   const { toast } = useToast();
 
   const todaysSlots = useMemo(() => 
@@ -40,38 +42,15 @@ export const DailyPlan = ({ date, dayPlanSlots, subtasks, tasks, onSlotsUpdate }
   }, [tasks]);
 
   const generateDayPlan = async () => {
-    setIsGenerating(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('action-counsellor', {
-        body: { 
-          action: 'build_day_plan',
-          date,
-          constraints: {
-            dayStart: '06:00',
-            dayEnd: '19:00',
-            sprintDuration: 45,
-            breakDuration: 15
-          }
-        }
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Day Plan Generated!",
-        description: `Created ${data.slotsCreated} new time slots for today.`,
-      });
-      
+    const result = await buildDayPlan(date, {
+      dayStart: '06:00',
+      dayEnd: '19:00',
+      sprintDuration: 45,
+      breakDuration: 15
+    });
+    
+    if (result) {
       onSlotsUpdate();
-    } catch (error) {
-      console.error('Failed to generate day plan:', error);
-      toast({
-        title: "Generation Failed",
-        description: "Failed to generate day plan. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsGenerating(false);
     }
   };
 

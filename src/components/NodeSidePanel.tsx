@@ -18,6 +18,8 @@ import { SphereNode, Task, Subtask } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
+import { useActionCounsellor } from '@/hooks/useActionCounsellor';
+
 interface NodeSidePanelProps {
   node: SphereNode;
   tasks: Task[];
@@ -35,7 +37,7 @@ export const NodeSidePanel = ({
   onTaskUpdate,
   onSubtasksUpdate 
 }: NodeSidePanelProps) => {
-  const [isGenerating, setIsGenerating] = useState(false);
+  const { isGenerating, breakdownTask, buildDayPlan } = useActionCounsellor();
   const { toast } = useToast();
 
   const nodeTasks = tasks.filter(task => task.nodeId === node.id);
@@ -47,33 +49,9 @@ export const NodeSidePanel = ({
   const completedSubtasks = nodeSubtasks.filter(subtask => subtask.status === 'done').length;
 
   const generateSubtasks = async (taskId: string) => {
-    setIsGenerating(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('action-counsellor', {
-        body: { 
-          action: 'breakdown_task',
-          taskId,
-          nodeId: node.id
-        }
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Subtasks Generated!",
-        description: `Generated ${data.subtasks.length} subtasks with ${data.totalMinutes} minutes of work.`,
-      });
-      
+    const result = await breakdownTask(taskId, node.id);
+    if (result) {
       onSubtasksUpdate();
-    } catch (error) {
-      console.error('Failed to generate subtasks:', error);
-      toast({
-        title: "Generation Failed",
-        description: "Failed to generate subtasks. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsGenerating(false);
     }
   };
 
@@ -91,19 +69,13 @@ export const NodeSidePanel = ({
       }
 
       // Then build day plan
-      const { error } = await supabase.functions.invoke('action-counsellor', {
-        body: { 
-          action: 'build_day_plan',
-          date: today
-        }
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Added to Today!",
-        description: "Task has been scheduled in your daily plan.",
-      });
+      const result = await buildDayPlan(today);
+      if (result) {
+        toast({
+          title: "Added to Today!",
+          description: "Task has been scheduled in your daily plan.",
+        });
+      }
     } catch (error) {
       console.error('Failed to add task to today:', error);
     }
