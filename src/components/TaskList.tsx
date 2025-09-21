@@ -16,9 +16,10 @@ interface TaskListProps {
   onTaskComplete: (taskId: string, actualTime: number, focusScore: number) => void;
   onTaskUpdate: (taskId: string, updates: Partial<Task>) => void;
   compact?: boolean;
+  contextNodeId?: string;
 }
 
-export const TaskList = ({ tasks, onTaskComplete, onTaskUpdate, compact = false }: TaskListProps) => {
+export const TaskList = ({ tasks, onTaskComplete, onTaskUpdate, compact = false, contextNodeId }: TaskListProps) => {
   const [completingTask, setCompletingTask] = useState<Task | null>(null);
   const [actualTime, setActualTime] = useState(0);
   const [focusScore, setFocusScore] = useState([8]);
