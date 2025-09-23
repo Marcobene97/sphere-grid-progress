@@ -354,14 +354,34 @@ export default function NewIndex() {
 
           <TabsContent value="xp">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <XPSystem />
-              <div className="space-y-4">
-                <MobileSync 
-                  nodes={nodes} 
-                  tasks={tasks} 
-                  onDataRestore={handleDataRestore}
-                />
-              </div>
+                      <XPSystem />
+                      <div className="space-y-4">
+                        <MobileSync 
+                          nodes={nodes} 
+                          tasks={tasks} 
+                          onDataRestore={handleDataRestore}
+                        />
+                        
+                        <Card>
+                          <CardHeader>
+                            <CardTitle>Visual Test</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <Button 
+                              onClick={() => {
+                                console.log('=== MANUAL DEBUG ===');
+                                console.log('Nodes received by NewIndex:', nodes.length);
+                                console.log('First 3 nodes:', nodes.slice(0, 3));
+                                console.log('Tasks received by NewIndex:', tasks.length);
+                                console.log('==================');
+                              }}
+                              className="w-full"
+                            >
+                              Log Debug Info
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      </div>
             </div>
           </TabsContent>
 
@@ -388,6 +408,19 @@ export default function NewIndex() {
                       <p>• Tasks: {tasks.length} loaded</p>
                       <p>• Status: {loading ? 'Loading...' : 'Ready'}</p>
                       <p>• User: {user ? 'Authenticated' : 'Not authenticated'}</p>
+                      <Button 
+                        onClick={() => {
+                          console.log('=== MANUAL DEBUG ===');
+                          console.log('Nodes received by NewIndex:', nodes.length);
+                          console.log('Sample nodes:', nodes.slice(0, 2));
+                          console.log('Tasks received by NewIndex:', tasks.length);
+                          console.log('==================');
+                        }}
+                        size="sm"
+                        className="mt-2 w-full"
+                      >
+                        Log All Data to Console
+                      </Button>
                     </div>
                   </div>
                 </CardContent>
@@ -403,12 +436,6 @@ export default function NewIndex() {
                       <h4 className="font-medium mb-2">First 2 Nodes:</h4>
                       <pre className="bg-muted p-2 rounded text-xs overflow-auto max-h-40">
                         {JSON.stringify(nodes.slice(0, 2), null, 2)}
-                      </pre>
-                    </div>
-                    <div>
-                      <h4 className="font-medium mb-2">First 2 Tasks:</h4>
-                      <pre className="bg-muted p-2 rounded text-xs overflow-auto max-h-40">
-                        {JSON.stringify(tasks.slice(0, 2), null, 2)}
                       </pre>
                     </div>
                   </div>

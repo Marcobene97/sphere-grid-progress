@@ -39,10 +39,12 @@ export const FFXSphereGrid: React.FC<FFXSphereGridProps> = ({
 
   // Enhanced node positioning algorithm (FFX-style layout)
   const generateFFXLayout = useCallback((nodeList: SphereNode[]): GridNode[] => {
-    const centerX = 400;
-    const centerY = 300;
-    const majorRadius = 200;
-    const minorRadius = 120;
+    const centerX = 400; // Canvas center
+    const centerY = 300; // Canvas center
+    const baseRadius = 80; // Smaller base radius
+    const spacing = 40; // Spacing between nodes
+    
+    console.log('FFX Grid: Generating layout for', nodeList.length, 'nodes');
     
     return nodeList.map((node, index) => {
       let x, y, connections: string[] = [];
@@ -52,32 +54,27 @@ export const FFXSphereGrid: React.FC<FFXSphereGridProps> = ({
         x = centerX;
         y = centerY;
       } else {
-        // Spiral outward pattern like FFX
-        const angle = (index * 0.618 * Math.PI * 2); // Golden ratio spiral
-        const radius = majorRadius + (Math.floor(index / 6) * minorRadius);
-        const spiralOffset = Math.sin(index * 0.5) * 30;
+        // Circular/spiral pattern for better visibility
+        const angleStep = (2 * Math.PI) / Math.max(6, nodeList.length - 1);
+        const ring = Math.floor((index - 1) / 6) + 1;
+        const posInRing = (index - 1) % 6;
+        const angle = posInRing * angleStep;
+        const radius = baseRadius + (ring - 1) * spacing;
         
-        x = centerX + Math.cos(angle) * (radius + spiralOffset);
-        y = centerY + Math.sin(angle) * (radius + spiralOffset);
+        x = centerX + Math.cos(angle) * radius;
+        y = centerY + Math.sin(angle) * radius;
       }
       
-      // Create smart connections based on domain similarity and proximity
+      // Create smart connections based on domain similarity
       connections = nodeList
         .filter((otherNode, otherIndex) => {
           if (otherIndex === index) return false;
-          
-          const distance = Math.sqrt(
-            Math.pow(x - (otherNode.position?.x || 0), 2) + 
-            Math.pow(y - (otherNode.position?.y || 0), 2)
-          );
-          
-          const isDomainRelated = otherNode.domain === node.domain;
-          const isClose = distance < 150;
-          
-          return isDomainRelated || isClose || Math.random() > 0.7;
+          return otherNode.domain === node.domain && Math.random() > 0.5;
         })
-        .slice(0, 3) // Max 3 connections per node
+        .slice(0, 2) // Max 2 connections per node
         .map(connectedNode => connectedNode.id);
+      
+      console.log(`FFX Grid: Node ${node.title} positioned at (${x.toFixed(0)}, ${y.toFixed(0)})`);
       
       return {
         ...node,
@@ -94,9 +91,13 @@ export const FFXSphereGrid: React.FC<FFXSphereGridProps> = ({
     const canvas = new FabricCanvas(canvasRef.current, {
       width: 800,
       height: 600,
-      backgroundColor: '#0a0a23', // Dark FFX-style background
+      backgroundColor: 'rgba(10, 10, 35, 0.95)', // Darker background for contrast
       selection: false
     });
+
+    // Set initial viewport to center
+    canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
+    canvas.setZoom(1);
 
     // Enable zooming and panning
     canvas.on('mouse:wheel', (opt) => {
@@ -104,21 +105,21 @@ export const FFXSphereGrid: React.FC<FFXSphereGridProps> = ({
       let zoom = canvas.getZoom();
       zoom *= 0.999 ** delta;
       if (zoom > 3) zoom = 3;
-      if (zoom < 0.3) zoom = 0.3;
+      if (zoom < 0.5) zoom = 0.5;
       canvas.zoomToPoint(new Point(opt.e.offsetX, opt.e.offsetY), zoom);
       setZoomLevel(zoom);
       opt.e.preventDefault();
       opt.e.stopPropagation();
     });
 
-    // Pan with right mouse button (simplified for v6)
+    // Pan with alt + drag
     let isDragging = false;
     let lastPosX = 0;
     let lastPosY = 0;
 
     canvas.on('mouse:down', (opt) => {
       const evt = opt.e as MouseEvent;
-      if (evt.altKey) { // Alt + click to pan
+      if (evt.altKey) { 
         isDragging = true;
         canvas.selection = false;
         lastPosX = evt.clientX;
@@ -143,6 +144,7 @@ export const FFXSphereGrid: React.FC<FFXSphereGridProps> = ({
       canvas.selection = true;
     });
 
+    console.log('FFX Grid: Canvas initialized with dimensions:', canvas.width, 'x', canvas.height);
     setFabricCanvas(canvas);
 
     return () => {
@@ -170,22 +172,27 @@ export const FFXSphereGrid: React.FC<FFXSphereGridProps> = ({
 
   // Render nodes and connections on canvas
   useEffect(() => {
-        console.log('FFX Grid: Canvas updated, nodes:', nodes.length);
-        console.log('FFX Grid: First 3 nodes:', nodes.slice(0, 3));
-        console.log('FFX Grid: Grid nodes state:', gridNodes.length);
-        
-        if (!fabricCanvas || gridNodes.length === 0) {
-          console.log('FFX Grid: Skipping render - Canvas:', !!fabricCanvas, 'Nodes:', gridNodes.length);
-          return;
-        }
-
-    fabricCanvas.clear();
-    fabricCanvas.backgroundColor = '#0a0a23';
+    console.log('FFX Grid: Canvas render effect triggered');
+    console.log('FFX Grid: Canvas ready:', !!fabricCanvas, 'Nodes to render:', gridNodes.length);
     
-    console.log('FFX Grid: Starting to render', gridNodes.length, 'nodes');
+    if (!fabricCanvas) {
+      console.log('FFX Grid: Canvas not ready yet');
+      return;
+    }
+    
+    if (gridNodes.length === 0) {
+      console.log('FFX Grid: No nodes to render');
+      fabricCanvas.clear();
+      fabricCanvas.renderAll();
+      return;
+    }
 
+    console.log('FFX Grid: Clearing canvas and starting render...');
+    fabricCanvas.clear();
+    fabricCanvas.backgroundColor = 'rgba(10, 10, 35, 0.95)';
+    
     // First pass: Draw connections (lines behind nodes)
-    gridNodes.forEach((node) => {
+    gridNodes.forEach((node, nodeIndex) => {
       node.connections.forEach((connectionId) => {
         const targetNode = gridNodes.find(n => n.id === connectionId);
         if (!targetNode) return;
@@ -199,7 +206,7 @@ export const FFXSphereGrid: React.FC<FFXSphereGridProps> = ({
             selectable: false,
             evented: false,
             strokeDashArray: node.status === 'completed' && targetNode.status === 'completed' 
-              ? [] : [5, 5] // Dashed if not both completed
+              ? [] : [5, 5] 
           }
         );
         fabricCanvas.add(line);
@@ -207,10 +214,12 @@ export const FFXSphereGrid: React.FC<FFXSphereGridProps> = ({
     });
 
     // Second pass: Draw nodes
-    gridNodes.forEach((node) => {
-      console.log('FFX Grid: Rendering node:', node.title, 'at position:', node.position);
+    let renderedNodes = 0;
+    gridNodes.forEach((node, nodeIndex) => {
       const nodeColor = getNodeColor(node);
       const nodeRadius = getNodeRadius(node);
+      
+      console.log(`FFX Grid: Rendering node ${nodeIndex + 1}/${gridNodes.length}: "${node.title}" at (${node.position.x}, ${node.position.y}) with color ${nodeColor} and radius ${nodeRadius}`);
 
       // Main node circle
       const circle = new Circle({
@@ -220,29 +229,29 @@ export const FFXSphereGrid: React.FC<FFXSphereGridProps> = ({
         fill: nodeColor,
         stroke: getNodeBorderColor(node),
         strokeWidth: 3,
-        selectable: false,
+        selectable: true,
         evented: true,
         shadow: new Shadow({
           color: nodeColor,
-          blur: 10,
+          blur: 15,
           offsetX: 0,
           offsetY: 0
         })
       });
 
-      // Progress ring
+      // Progress ring for nodes with progress
       if (node.progress && node.progress > 0) {
+        const circumference = 2 * Math.PI * (nodeRadius + 6);
+        const progressLength = (circumference * node.progress) / 100;
+        
         const progressRing = new Circle({
-          left: node.position.x - (nodeRadius + 4),
-          top: node.position.y - (nodeRadius + 4),
-          radius: nodeRadius + 4,
+          left: node.position.x - (nodeRadius + 6),
+          top: node.position.y - (nodeRadius + 6),
+          radius: nodeRadius + 6,
           fill: 'transparent',
           stroke: '#22c55e',
-          strokeWidth: 2,
-          strokeDashArray: [
-            (2 * Math.PI * (nodeRadius + 4) * node.progress) / 100,
-            2 * Math.PI * (nodeRadius + 4)
-          ],
+          strokeWidth: 3,
+          strokeDashArray: [progressLength, circumference],
           selectable: false,
           evented: false
         });
@@ -250,23 +259,29 @@ export const FFXSphereGrid: React.FC<FFXSphereGridProps> = ({
       }
 
       // Node text label
-      const text = new Text(node.title, {
+      const text = new Text(node.title.substring(0, 15) + (node.title.length > 15 ? '...' : ''), {
         left: node.position.x,
-        top: node.position.y + nodeRadius + 10,
+        top: node.position.y + nodeRadius + 15,
         originX: 'center',
         originY: 'top',
-        fontSize: 12,
+        fontSize: 11,
         fill: '#ffffff',
         fontFamily: 'Arial, sans-serif',
         selectable: false,
-        evented: false
+        evented: false,
+        shadow: new Shadow({
+          color: 'rgba(0,0,0,0.8)',
+          blur: 3,
+          offsetX: 1,
+          offsetY: 1
+        })
       });
 
       // Status icons
       if (node.status === 'completed') {
         const checkIcon = new Circle({
-          left: node.position.x + nodeRadius - 8,
-          top: node.position.y - nodeRadius - 8,
+          left: node.position.x + nodeRadius - 10,
+          top: node.position.y - nodeRadius - 10,
           radius: 8,
           fill: '#22c55e',
           stroke: '#ffffff',
@@ -277,24 +292,25 @@ export const FFXSphereGrid: React.FC<FFXSphereGridProps> = ({
         fabricCanvas.add(checkIcon);
       }
 
-      // Click handler
+      // Click handler for nodes
       circle.on('mousedown', () => {
+        console.log('FFX Grid: Node clicked:', node.title);
         setSelectedNode(node);
         onNodeClick?.(node);
         
-        // Visual feedback
+        // Visual feedback animation
         circle.animate({
-          scaleX: 1.2,
-          scaleY: 1.2
+          scaleX: 1.3,
+          scaleY: 1.3
         }, {
-          duration: 200,
+          duration: 150,
           onChange: () => fabricCanvas.renderAll(),
           onComplete: () => {
             circle.animate({
               scaleX: 1,
               scaleY: 1
             }, {
-              duration: 200,
+              duration: 150,
               onChange: () => fabricCanvas.renderAll()
             });
           }
@@ -303,13 +319,20 @@ export const FFXSphereGrid: React.FC<FFXSphereGridProps> = ({
 
       fabricCanvas.add(circle);
       fabricCanvas.add(text);
-
+      
       // Store reference
       node.fabricObject = circle;
+      renderedNodes++;
     });
 
-    console.log('FFX Grid: Finished rendering. Canvas objects:', fabricCanvas.getObjects().length);
+    console.log(`FFX Grid: Render complete. Added ${renderedNodes} nodes. Total canvas objects: ${fabricCanvas.getObjects().length}`);
     fabricCanvas.renderAll();
+    
+    // Force a re-render after a short delay to ensure visibility
+    setTimeout(() => {
+      fabricCanvas.renderAll();
+    }, 100);
+    
   }, [fabricCanvas, gridNodes, onNodeClick]);
 
   const getNodeColor = (node: GridNode): string => {
@@ -335,9 +358,10 @@ export const FFXSphereGrid: React.FC<FFXSphereGridProps> = ({
   };
 
   const getNodeRadius = (node: GridNode): number => {
-    if (node.goalType === 'project') return 25;
-    if (node.goalType === 'habit') return 20;
-    return 15;
+    const baseRadius = 15;
+    if (node.goalType === 'project') return baseRadius + 8;
+    if (node.goalType === 'habit') return baseRadius + 5;
+    return baseRadius;
   };
 
   const getConnectionColor = (node1: GridNode, node2: GridNode): string => {
@@ -403,12 +427,17 @@ export const FFXSphereGrid: React.FC<FFXSphereGridProps> = ({
             className="border border-gray-700 rounded-lg bg-gradient-to-br from-slate-900 to-slate-800"
           />
           
-          {/* Debug Info */}
-          {process.env.NODE_ENV === 'development' && (
-            <div className="absolute top-2 right-2 bg-black/80 text-white p-2 rounded text-xs">
-              Canvas: {fabricCanvas ? '✓' : '✗'} | Nodes: {gridNodes.length} | Objects: {fabricCanvas?.getObjects().length || 0}
-            </div>
-          )}
+          {/* Debug Info - Always show in development */}
+          <div className="absolute top-2 right-2 bg-black/80 text-white p-2 rounded text-xs space-y-1">
+            <div>Canvas: {fabricCanvas ? '✅' : '❌'}</div>
+            <div>Raw Nodes: {nodes.length}</div>
+            <div>Grid Nodes: {gridNodes.length}</div>
+            <div>Canvas Objects: {fabricCanvas?.getObjects().length || 0}</div>
+            <div>Zoom: {Math.round(zoomLevel * 100)}%</div>
+            {selectedNode && (
+              <div className="text-yellow-300">Selected: {selectedNode.title}</div>
+            )}
+          </div>
           
           {/* Empty State */}
           {gridNodes.length === 0 && (
@@ -465,8 +494,22 @@ export const FFXSphereGrid: React.FC<FFXSphereGridProps> = ({
         </div>
         
         <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
-          <span>Scroll to zoom • Alt+click to pan • Click nodes to interact</span>
+          <span>Scroll to zoom • Alt+drag to pan • Click nodes to interact</span>
           <div className="flex items-center gap-4">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => {
+                if (fabricCanvas) {
+                  fabricCanvas.setZoom(1);
+                  fabricCanvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
+                  fabricCanvas.renderAll();
+                  setZoomLevel(1);
+                }
+              }}
+            >
+              Reset View
+            </Button>
             <div className="flex items-center gap-1">
               <div className="w-2 h-2 rounded-full bg-yellow-400" />
               <span>Available</span>
