@@ -92,7 +92,7 @@ async function analyzeTask(supabase: any, payload: any) {
         "difficulty": "basic|intermediate|advanced",
         "estimatedTime": 45, // minutes
         "priority": 3, // 1-5
-        "context": "desk|gym|errand|reading|quiet",
+        "context": "desk|gym|errand|reading|quiet|kitchen|outdoor|mobile|anywhere|couch",
         "energy": "low|medium|high",
         "valueScore": 4 // 1-5
       },
@@ -332,7 +332,7 @@ Return JSON format:
       "difficulty": "basic|intermediate|advanced",
       "priority": 1-5,
       "estimatedTime": minutes_number,
-      "context": "desk|mobile|gym|kitchen|outdoor|anywhere", 
+      "context": "desk|gym|errand|reading|quiet|kitchen|outdoor|mobile|anywhere|couch", 
       "energy": "low|medium|high",
       "valueScore": 1-5,
       "tags": ["relevant", "tags"],

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { BrainDumpInput } from '@/components/BrainDumpInput';
-import { SphereGridNew } from '@/components/SphereGridNew';
+import { SystemOverview } from '@/components/SystemOverview';
+import { ProgressConnector } from '@/components/ProgressConnector';
+import { UnifiedProgressSystem } from '@/components/UnifiedProgressSystem';
 import { QuickActions } from '@/components/QuickActions';
-import { AIOptimizer } from '@/components/AIOptimizer';
-import { OptimizedSchedule } from '@/components/OptimizedSchedule';
 import { NodeSidePanel } from '@/components/NodeSidePanel';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -263,77 +263,32 @@ export default function NewIndex() {
   return (
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-7xl mx-auto space-y-6">
-        <header className="text-center py-8">
-          <h1 className="text-4xl font-bold text-primary mb-2">AI-Powered Sphere Grid</h1>
-          <p className="text-muted-foreground">Personal mastery through intelligent task management and skill progression</p>
-        </header>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Target className="h-5 w-5" />
-                  Sphere Grid
-                  <Badge variant="outline">{nodes.length} nodes</Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-              <SphereGridNew 
-                nodes={nodes}
-                onNodeClick={(node) => setSelectedNode(node)}
-                onNodeUpdate={(id, pos) => handleNodeUpdate(id, { position: pos })}
-              />
-              </CardContent>
-            </Card>
+        <SystemOverview />
+        
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          <div className="lg:col-span-3">
+            <UnifiedProgressSystem
+              nodes={nodes}
+              tasks={tasks}
+              onNodeClick={(node) => setSelectedNode(node)}
+              onNodeUpdate={(nodeId, updates) => handleNodeUpdate(nodeId, updates)}
+              onDataRefresh={loadAppData}
+            />
           </div>
 
           <div className="space-y-6">
             <BrainDumpInput onTasksGenerated={handleTasksGenerated} />
             
-            <AIOptimizer onOptimizationComplete={loadAppData} />
-
-            <OptimizedSchedule selectedDate={new Date().toISOString().split('T')[0]} />
-            
-            <QuickActions
+            <QuickActions 
               onTasksGenerated={handleTasksGenerated}
               onDayPlanGenerated={() => toast({ title: "Day Plan Generated!", description: "Your schedule has been optimized" })}
               onMindmapSeeded={loadAppData}
             />
-
-            <Card>
-              <CardHeader>
-                <CardTitle>AI Progress Stats</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="flex justify-between">
-                  <span>Total Tasks:</span>
-                  <Badge>{tasks.length}</Badge>
-                </div>
-                <div className="flex justify-between">
-                  <span>Active Nodes:</span>
-                  <Badge>{nodes.filter(n => n.status === 'available').length}</Badge>
-                </div>
-                <div className="flex justify-between">
-                  <span>Completed:</span>
-                  <Badge variant="secondary">
-                    {tasks.filter(t => t.status === 'completed').length}
-                  </Badge>
-                </div>
-                <div className="flex justify-between">
-                  <span>Avg Progress:</span>
-                  <Badge variant="outline">
-                    {nodes.length > 0 ? Math.round(nodes.reduce((sum, n) => sum + (n.progress || 0), 0) / nodes.length) : 0}%
-                  </Badge>
-                </div>
-                <div className="flex justify-between">
-                  <span>Efficiency Score:</span>
-                  <Badge className="bg-green-100 text-green-800">
-                    {Math.round((tasks.filter(t => t.status === 'completed').length / Math.max(tasks.length, 1)) * 100)}%
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
+            
+            <ProgressConnector 
+              nodes={nodes}
+              tasks={tasks}
+            />
 
             <MobileSync 
               nodes={nodes} 
