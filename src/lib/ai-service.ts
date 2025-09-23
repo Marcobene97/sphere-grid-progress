@@ -121,55 +121,65 @@ export class AIService {
     return data;
   }
 
-  // Brain dump processing
+  // Enhanced brain dump processing with proper AI analysis
   async processBrainDump(text: string): Promise<{
     tasks: Array<{
       title: string;
       description: string;
       category: string;
       priority: number;
+      estimatedTime: number;
+      difficulty: string;
+      context: string;
+      energy: string;
+      valueScore: number;
     }>;
     nodes: Array<{
       title: string;
       domain: string;
       goalType: string;
+      description: string;
     }>;
   }> {
-    // For now, we'll use the analyzeTask function and extract multiple tasks
-    // This could be enhanced with a dedicated brain dump processor
-    const lines = text.split('\n').filter(line => line.trim().length > 0);
+    console.log('[BrainDump] Processing text:', text);
     
-    const results = {
-      tasks: [] as any[],
-      nodes: [] as any[]
-    };
-
-    for (const line of lines) {
-      try {
-        const analysis = await this.analyzeTask(line.trim());
-        
-        results.tasks.push({
-          title: line.trim(),
-          description: '',
-          category: analysis.taskAnalysis.category,
-          priority: analysis.taskAnalysis.priority,
-          estimatedTime: analysis.taskAnalysis.estimatedTime,
-          difficulty: analysis.taskAnalysis.difficulty,
-          context: analysis.taskAnalysis.context,
-          energy: analysis.taskAnalysis.energy,
-          valueScore: analysis.taskAnalysis.valueScore
-        });
-
-        // Add suggested nodes
-        if (analysis.suggestedNewNodes && analysis.suggestedNewNodes.length > 0) {
-          results.nodes.push(...analysis.suggestedNewNodes);
+    // Use the action-counsellor to intelligently parse the brain dump
+    const { data, error } = await supabase.functions.invoke('action-counsellor', {
+      body: {
+        action: 'processBrainDump',
+        payload: {
+          text: text.trim()
         }
-      } catch (error) {
-        console.error(`Error processing line: ${line}`, error);
       }
+    });
+
+    if (error) {
+      console.error('[BrainDump] Edge function error:', error);
+      throw error;
     }
 
-    return results;
+    console.log('[BrainDump] AI Response:', data);
+
+    if (!data || !data.tasks) {
+      throw new Error('Invalid response from brain dump processor');
+    }
+
+    return {
+      tasks: data.tasks || [],
+      nodes: data.nodes || []
+    };
+  }
+  // Enhanced AI methods
+  async seedMindmap(): Promise<any> {
+    const { data, error } = await supabase.functions.invoke('action-counsellor', {
+      body: {
+        action: 'seedMindmap',
+        payload: {}
+      }
+    });
+
+    if (error) throw error;
+    return data;
   }
 }
 

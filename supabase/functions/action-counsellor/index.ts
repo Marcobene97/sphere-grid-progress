@@ -33,6 +33,10 @@ serve(async (req) => {
         return await breakdownTask(supabase, payload);
       case 'connectToNodes':
         return await connectToNodes(supabase, payload);
+      case 'processBrainDump':
+        return await processBrainDump(supabase, payload);
+      case 'seedMindmap':
+        return await seedMindmap(supabase, payload);
       default:
         throw new Error(`Unknown action: ${action}`);
     }
@@ -269,4 +273,325 @@ async function connectToNodes(supabase: any, payload: any) {
   }), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
+}
+
+// Enhanced brain dump processing function
+async function processBrainDump(supabase: any, payload: any) {
+  const { text } = payload;
+  
+  console.log('[processBrainDump] Processing:', text);
+  
+  // Get existing nodes to provide context
+  const { data: existingNodes } = await supabase
+    .from('nodes')
+    .select('*')
+    .order('created_at', { ascending: false });
+  
+  console.log('[processBrainDump] Existing nodes:', existingNodes?.length || 0);
+
+  // Enhanced prompt for intelligent brain dump processing
+  const prompt = `You are an intelligent task organizer. Analyze the following brain dump and extract actionable tasks and skill categories.
+
+EXISTING SKILL NODES: ${existingNodes ? existingNodes.map(n => `${n.title} (${n.domain})`).join(', ') : 'None'}
+
+BRAIN DUMP TEXT: "${text}"
+
+Extract and organize tasks from this text. For each task:
+1. Identify the main action/goal
+2. Estimate time needed (in minutes)
+3. Determine difficulty (basic/intermediate/advanced) 
+4. Assign priority (1-5, where 5 is highest)
+5. Categorize by domain/skill area
+6. Calculate value score (1-5)
+7. Suggest appropriate context (desk/mobile/gym/kitchen/etc.)
+8. Estimate energy level needed (low/medium/high)
+
+For skill nodes, suggest new categories or subcategories if the tasks don't fit existing ones.
+
+EXAMPLE: "I want to complete one chapter of a textbook in C" should become:
+- Task: "Complete Chapter X of C Programming Textbook"
+- Connect to/Create: "Programming" → "C Programming" skill node
+- Estimate: 60-90 minutes
+- Difficulty: intermediate
+- Priority: 4
+- Create subtasks: Read chapter, Take notes, Do exercises, Review concepts
+
+Return JSON format:
+{
+  "tasks": [
+    {
+      "title": "specific actionable task title",
+      "description": "detailed description with context",
+      "category": "programming|learning|health|finance|creative|general",
+      "difficulty": "basic|intermediate|advanced",
+      "priority": 1-5,
+      "estimatedTime": minutes_number,
+      "context": "desk|mobile|gym|kitchen|outdoor|anywhere", 
+      "energy": "low|medium|high",
+      "valueScore": 1-5,
+      "tags": ["relevant", "tags"],
+      "domain": "skill_domain"
+    }
+  ],
+  "nodes": [
+    {
+      "title": "Skill/Category Name", 
+      "domain": "programming|learning|health|finance|creative|general",
+      "description": "what this skill area covers",
+      "goalType": "habit|project|one-off"
+    }
+  ]
+}
+
+Be intelligent about parsing - extract multiple tasks from continuous text, infer context, and create meaningful categorization.`;
+
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openAIApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: 'You are an expert task organizer and productivity coach. Always return valid JSON.' },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.7,
+        max_tokens: 2000,
+      }),
+    });
+
+    const data = await response.json();
+    console.log('[processBrainDump] OpenAI response:', data);
+    
+    if (!data.choices?.[0]?.message?.content) {
+      throw new Error('Invalid OpenAI response');
+    }
+
+    const analysis = JSON.parse(data.choices[0].message.content);
+    console.log('[processBrainDump] Parsed analysis:', analysis);
+    
+    return new Response(JSON.stringify(analysis), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+    
+  } catch (error) {
+    console.error('[processBrainDump] Error:', error);
+    throw error;
+  }
+}
+
+// Seed initial mindmap based on user's structure
+async function seedMindmap(supabase: any, payload: any) {
+  console.log('[seedMindmap] Creating initial mindmap structure');
+  
+  const initialNodes = [
+    // Programming Domain
+    {
+      title: 'Programming',
+      domain: 'programming',
+      description: 'Software development and coding skills',
+      goal_type: 'project',
+      position_x: 0,
+      position_y: 0,
+      metadata: { color: '#22c55e', xp: 0 }
+    },
+    {
+      title: 'Freecodecamp - Responsive Web Design',
+      domain: 'programming',
+      description: 'Learn responsive web design through freeCodeCamp curriculum',
+      goal_type: 'project',
+      position_x: -200,
+      position_y: -150,
+      metadata: { color: '#3b82f6', xp: 0 }
+    },
+    {
+      title: 'Trading System of Agents',
+      domain: 'programming',
+      description: 'Develop an intelligent trading system using multi-agent architecture',
+      goal_type: 'project',
+      position_x: -100,
+      position_y: -100,
+      metadata: { color: '#8b5cf6', xp: 0 }
+    },
+    {
+      title: 'Heilbronn - C',
+      domain: 'programming',
+      description: 'C programming language course at Heilbronn',
+      goal_type: 'project',
+      position_x: 150,
+      position_y: -100,
+      metadata: { color: '#f59e0b', xp: 0 }
+    },
+    {
+      title: 'Active Workflows',
+      domain: 'programming',
+      description: 'Learn and implement active workflow automation',
+      goal_type: 'project',
+      position_x: 200,
+      position_y: 50,
+      metadata: { color: '#10b981', xp: 0 }
+    },
+
+    // Reading Domain
+    {
+      title: 'Reading',
+      domain: 'learning',
+      description: 'Reading and knowledge acquisition',
+      goal_type: 'habit',
+      position_x: -400,
+      position_y: 200,
+      metadata: { color: '#ef4444', xp: 0 }
+    },
+    {
+      title: 'History',
+      domain: 'learning',
+      description: 'Historical knowledge and research',
+      goal_type: 'project',
+      position_x: -500,
+      position_y: 300,
+      metadata: { color: '#dc2626', xp: 0 }
+    },
+    {
+      title: 'Psychology',
+      domain: 'learning',
+      description: 'Psychology and human behavior studies',
+      goal_type: 'project',
+      position_x: -300,
+      position_y: 350,
+      metadata: { color: '#7c3aed', xp: 0 }
+    },
+    {
+      title: 'Complex Systems reading / Logic',
+      domain: 'learning',
+      description: 'Study complex systems theory and logical thinking',
+      goal_type: 'project',
+      position_x: -100,
+      position_y: 300,
+      metadata: { color: '#06b6d4', xp: 0 }
+    },
+
+    // Creative Domain
+    {
+      title: 'DJ',
+      domain: 'creative',
+      description: 'DJ skills and music production',
+      goal_type: 'habit',
+      position_x: -600,
+      position_y: 0,
+      metadata: { color: '#ec4899', xp: 0 }
+    },
+    {
+      title: 'Ableton',
+      domain: 'creative',
+      description: 'Music production with Ableton Live',
+      goal_type: 'project',
+      position_x: -700,
+      position_y: -100,
+      metadata: { color: '#f472b6', xp: 0 }
+    },
+
+    // Life Skills
+    {
+      title: 'Driving License',
+      domain: 'general',
+      description: 'Obtain driving license',
+      goal_type: 'one-off',
+      position_x: -800,
+      position_y: 100,
+      metadata: { color: '#84cc16', xp: 0 }
+    },
+    {
+      title: 'Self-hygene',
+      domain: 'health',
+      description: 'Personal hygiene and grooming habits',
+      goal_type: 'habit',
+      position_x: 300,
+      position_y: 200,
+      metadata: { color: '#14b8a6', xp: 0 }
+    },
+    {
+      title: 'Gym',
+      domain: 'health',
+      description: 'Fitness and strength training',
+      goal_type: 'habit',
+      position_x: 400,
+      position_y: 100,
+      metadata: { color: '#dc2626', xp: 0 }
+    },
+
+    // Business/Finance
+    {
+      title: 'CRM for Sport Trainers',
+      domain: 'programming',
+      description: 'Develop CRM system for sports trainers',
+      goal_type: 'project',
+      position_x: -300,
+      position_y: 400,
+      metadata: { color: '#7c2d12', xp: 0 }
+    },
+    {
+      title: 'Excel Course',
+      domain: 'learning',
+      description: 'Advanced Excel skills and data analysis',
+      goal_type: 'project',
+      position_x: 500,
+      position_y: -50,
+      metadata: { color: '#16a34a', xp: 0 }
+    },
+    {
+      title: 'Systems Design',
+      domain: 'programming',
+      description: 'Learn system design principles and patterns',
+      goal_type: 'project',
+      position_x: 100,
+      position_y: 400,
+      metadata: { color: '#1d4ed8', xp: 0 }
+    }
+  ];
+
+  try {
+    // Check if nodes already exist
+    const { data: existingNodes } = await supabase
+      .from('nodes')
+      .select('title')
+      .limit(5);
+
+    if (existingNodes && existingNodes.length > 0) {
+      console.log('[seedMindmap] Nodes already exist, skipping seed');
+      return new Response(JSON.stringify({ 
+        success: true, 
+        message: 'Mindmap already seeded',
+        existingCount: existingNodes.length 
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Insert all nodes
+    const { data: createdNodes, error } = await supabase
+      .from('nodes')
+      .insert(initialNodes)
+      .select();
+
+    if (error) {
+      throw error;
+    }
+
+    console.log(`[seedMindmap] Created ${createdNodes?.length || 0} initial nodes`);
+    
+    return new Response(JSON.stringify({ 
+      success: true, 
+      nodesCreated: createdNodes?.length || 0,
+      message: 'Initial mindmap structure created'
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+
+  } catch (error) {
+    console.error('[seedMindmap] Error:', error);
+    throw error;
+  }
 }

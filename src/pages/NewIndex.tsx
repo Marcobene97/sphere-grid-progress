@@ -232,6 +232,7 @@ export default function NewIndex() {
             <QuickActions 
               onTasksGenerated={handleTasksGenerated}
               onDayPlanGenerated={() => toast({ title: "Day Plan Generated!", description: "Your schedule has been optimized" })}
+              onMindmapSeeded={loadAppData}
             />
 
             <Card>

@@ -10,12 +10,37 @@ import { useToast } from '@/hooks/use-toast';
 interface QuickActionsProps {
   onTasksGenerated: (tasks: any[], nodes: any[]) => void;
   onDayPlanGenerated: () => void;
+  onMindmapSeeded: () => void;
 }
 
-export function QuickActions({ onTasksGenerated, onDayPlanGenerated }: QuickActionsProps) {
+export function QuickActions({ onTasksGenerated, onDayPlanGenerated, onMindmapSeeded }: QuickActionsProps) {
   const [isImporting, setIsImporting] = useState(false);
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
+  const [isSeedingMindmap, setIsSeedingMindmap] = useState(false);
   const { toast } = useToast();
+
+  const handleSeedMindmap = async () => {
+    setIsSeedingMindmap(true);
+    try {
+      const result = await aiService.seedMindmap();
+      
+      onMindmapSeeded();
+      
+      toast({
+        title: "Mindmap Seeded!",
+        description: result.message || `Created ${result.nodesCreated} initial skill nodes`,
+      });
+    } catch (error) {
+      console.error('Error seeding mindmap:', error);
+      toast({
+        title: "Error",
+        description: "Failed to seed mindmap",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSeedingMindmap(false);
+    }
+  };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -155,6 +180,20 @@ export function QuickActions({ onTasksGenerated, onDayPlanGenerated }: QuickActi
             <Calendar className="h-4 w-4 mr-2" />
           )}
           {isGeneratingPlan ? 'Generating...' : "Generate Today's Plan"}
+        </Button>
+
+        <Button 
+          variant="outline" 
+          className="w-full justify-start" 
+          onClick={handleSeedMindmap}
+          disabled={isSeedingMindmap}
+        >
+          {isSeedingMindmap ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <Zap className="h-4 w-4 mr-2" />
+          )}
+          {isSeedingMindmap ? 'Creating...' : "Create Initial Mindmap"}
         </Button>
 
         <div className="pt-2 border-t">
