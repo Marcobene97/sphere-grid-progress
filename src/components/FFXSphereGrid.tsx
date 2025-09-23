@@ -345,8 +345,12 @@ export const FFXSphereGrid: React.FC<FFXSphereGridProps> = ({
     
     // Force a re-render after a short delay to ensure visibility
     setTimeout(() => {
+      console.log('FFX Grid: Force re-render - objects now:', fabricCanvas.getObjects().length);
       fabricCanvas.renderAll();
     }, 100);
+    
+    // Additional debug: Log all canvas objects
+    console.log('FFX Grid: Canvas objects:', fabricCanvas.getObjects().map(obj => obj.constructor.name));
     
   }, [fabricCanvas, gridNodes, onNodeClick]);
 

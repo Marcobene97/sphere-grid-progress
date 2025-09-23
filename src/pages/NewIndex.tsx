@@ -16,6 +16,7 @@ import { Calendar, Target, Zap, Brain, Activity, RefreshCw, BarChart3 } from 'lu
 import { SphereNode, Task } from '@/types/new-index';
 import { aiService } from '@/lib/ai-service';
 import { MobileSync } from '@/components/MobileSync';
+import { SphereGridDebug } from '@/components/SphereGridDebug';
 import { useToast } from '@/hooks/use-toast';
 
 export default function NewIndex() {
@@ -426,21 +427,25 @@ export default function NewIndex() {
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Sample Data</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4 text-xs">
-                    <div>
-                      <h4 className="font-medium mb-2">First 2 Nodes:</h4>
-                      <pre className="bg-muted p-2 rounded text-xs overflow-auto max-h-40">
-                        {JSON.stringify(nodes.slice(0, 2), null, 2)}
-                      </pre>
+              <div className="space-y-4">
+                <SphereGridDebug />
+                
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Sample Data</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4 text-xs">
+                      <div>
+                        <h4 className="font-medium mb-2">First 2 Nodes:</h4>
+                        <pre className="bg-muted p-2 rounded text-xs overflow-auto max-h-40">
+                          {JSON.stringify(nodes.slice(0, 2), null, 2)}
+                        </pre>
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           </TabsContent>
         </Tabs>
