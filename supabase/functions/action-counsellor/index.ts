@@ -370,7 +370,12 @@ Be intelligent about parsing - extract multiple tasks from continuous text, infe
       throw new Error('Invalid OpenAI response');
     }
 
-    const analysis = JSON.parse(data.choices[0].message.content);
+    // Handle both raw JSON and markdown-wrapped JSON
+    let content = data.choices[0].message.content;
+    if (content.startsWith('```json')) {
+      content = content.replace(/^```json\n?/, '').replace(/\n?```$/, '');
+    }
+    const analysis = JSON.parse(content);
     console.log('[processBrainDump] Parsed analysis:', analysis);
     
     return new Response(JSON.stringify(analysis), {
