@@ -5,12 +5,14 @@ import { SystemOverview } from '@/components/SystemOverview';
 import { ProgressConnector } from '@/components/ProgressConnector';
 import { NodeCreationTest } from '@/components/NodeCreationTest';
 import { UnifiedProgressSystem } from '@/components/UnifiedProgressSystem';
+import { XPSystem } from '@/components/XPSystem';
 import { QuickActions } from '@/components/QuickActions';
 import { NodeSidePanel } from '@/components/NodeSidePanel';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Target, Zap, Brain } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Calendar, Target, Zap, Brain, Activity, RefreshCw, BarChart3 } from 'lucide-react';
 import { SphereNode, Task } from '@/types/new-index';
 import { aiService } from '@/lib/ai-service';
 import { MobileSync } from '@/components/MobileSync';
@@ -45,13 +47,23 @@ export default function NewIndex() {
 
   const loadAppData = async () => {
     try {
+      console.log('Loading app data...');
       const { data: nodesData } = await supabase.from('nodes').select('*');
       const { data: tasksData } = await supabase.from('tasks').select('*');
       
+      console.log('Raw data loaded:', { nodes: nodesData?.length || 0, tasks: tasksData?.length || 0 });
+      
       setNodes(nodesData?.map(mapDbNodeToSphereNode) || []);
       setTasks(tasksData?.map(mapDbTaskToTask) || []);
+      
+      console.log('Data processed and set in state');
     } catch (error) {
       console.error('Error loading data:', error);
+      toast({
+        title: "Data Loading Error",
+        description: "Failed to load app data",
+        variant: "destructive"
+      });
     }
   };
 
@@ -238,7 +250,7 @@ export default function NewIndex() {
       
       toast({
         title: "Data Restored!",
-        description: "Successfully restored your data from iCloud backup",
+        description: "Successfully restored your data from local backup",
       });
     } catch (error) {
       console.error('Error restoring data:', error);
@@ -266,40 +278,145 @@ export default function NewIndex() {
       <div className="max-w-7xl mx-auto space-y-6">
         <SystemOverview />
         
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          <div className="lg:col-span-3">
-            <UnifiedProgressSystem
-              nodes={nodes}
-              tasks={tasks}
-              onNodeClick={(node) => setSelectedNode(node)}
-              onNodeUpdate={(nodeId, updates) => handleNodeUpdate(nodeId, updates)}
-              onDataRefresh={loadAppData}
-            />
-          </div>
+        <Tabs defaultValue="system" className="w-full">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="system" className="flex items-center gap-2">
+              <Activity className="h-4 w-4" />
+              System
+            </TabsTrigger>
+            <TabsTrigger value="braindump" className="flex items-center gap-2">
+              <Brain className="h-4 w-4" />
+              Brain Dump
+            </TabsTrigger>
+            <TabsTrigger value="xp" className="flex items-center gap-2">
+              <Zap className="h-4 w-4" />
+              XP & Progress
+            </TabsTrigger>
+            <TabsTrigger value="debug" className="flex items-center gap-2">
+              <RefreshCw className="h-4 w-4" />
+              Debug
+            </TabsTrigger>
+          </TabsList>
 
-          <div className="space-y-6">
-            <BrainDumpInput onTasksGenerated={handleTasksGenerated} />
-            
-            <QuickActions 
-              onTasksGenerated={handleTasksGenerated}
-              onDayPlanGenerated={() => toast({ title: "Day Plan Generated!", description: "Your schedule has been optimized" })}
-              onMindmapSeeded={loadAppData}
-            />
-            
-            <NodeCreationTest onDataRefresh={loadAppData} />
+          <TabsContent value="system">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+              <div className="lg:col-span-3">
+                <UnifiedProgressSystem
+                  nodes={nodes}
+                  tasks={tasks}
+                  onNodeClick={(node) => setSelectedNode(node)}
+                  onNodeUpdate={(nodeId, updates) => handleNodeUpdate(nodeId, updates)}
+                  onDataRefresh={loadAppData}
+                />
+              </div>
 
-            <ProgressConnector 
-              nodes={nodes}
-              tasks={tasks}
-            />
+              <div className="space-y-4">
+                <ProgressConnector nodes={nodes} tasks={tasks} />
+                <QuickActions 
+                  onTasksGenerated={handleTasksGenerated}
+                  onDayPlanGenerated={() => toast({ title: "Day Plan Generated!", description: "Your schedule has been optimized" })}
+                  onMindmapSeeded={loadAppData}
+                />
+              </div>
+            </div>
+          </TabsContent>
 
-            <MobileSync 
-              nodes={nodes} 
-              tasks={tasks} 
-              onDataRestore={handleDataRestore}
-            />
-          </div>
-        </div>
+          <TabsContent value="braindump">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <BrainDumpInput onTasksGenerated={handleTasksGenerated} />
+              <div className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Quick Stats</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span>Nodes:</span>
+                        <Badge>{nodes.length}</Badge>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Tasks:</span>
+                        <Badge>{tasks.length}</Badge>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Completed:</span>
+                        <Badge variant="outline">
+                          {tasks.filter(t => t.status === 'completed').length}
+                        </Badge>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="xp">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <XPSystem />
+              <div className="space-y-4">
+                <MobileSync 
+                  nodes={nodes} 
+                  tasks={tasks} 
+                  onDataRestore={handleDataRestore}
+                />
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="debug">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <RefreshCw className="h-5 w-5" />
+                    Data Management
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button onClick={loadAppData} size="sm" variant="outline">
+                        Refresh All Data
+                      </Button>
+                      <NodeCreationTest onDataRefresh={loadAppData} />
+                    </div>
+                    <div className="text-xs text-muted-foreground space-y-1 p-3 bg-muted/50 rounded">
+                      <p><strong>Debug Info:</strong></p>
+                      <p>• Nodes: {nodes.length} loaded</p>
+                      <p>• Tasks: {tasks.length} loaded</p>
+                      <p>• Status: {loading ? 'Loading...' : 'Ready'}</p>
+                      <p>• User: {user ? 'Authenticated' : 'Not authenticated'}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Sample Data</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4 text-xs">
+                    <div>
+                      <h4 className="font-medium mb-2">First 2 Nodes:</h4>
+                      <pre className="bg-muted p-2 rounded text-xs overflow-auto max-h-40">
+                        {JSON.stringify(nodes.slice(0, 2), null, 2)}
+                      </pre>
+                    </div>
+                    <div>
+                      <h4 className="font-medium mb-2">First 2 Tasks:</h4>
+                      <pre className="bg-muted p-2 rounded text-xs overflow-auto max-h-40">
+                        {JSON.stringify(tasks.slice(0, 2), null, 2)}
+                      </pre>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+        </Tabs>
 
         {/* Node Side Panel */}
         {selectedNode && (

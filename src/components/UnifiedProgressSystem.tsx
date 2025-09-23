@@ -132,36 +132,36 @@ export const UnifiedProgressSystem: React.FC<UnifiedProgressSystemProps> = ({
         
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 p-4 rounded-lg border border-blue-200">
+            <div className="bg-gradient-to-br from-primary/5 to-primary/10 p-4 rounded-lg border border-primary/20">
               <div className="flex items-center gap-2 mb-2">
-                <Star className="h-4 w-4 text-blue-600" />
-                <span className="text-sm font-medium">Total XP</span>
+                <Star className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium text-foreground">Total XP</span>
               </div>
-              <div className="text-2xl font-bold text-blue-600">{systemStats.totalXP}</div>
+              <div className="text-2xl font-bold text-primary">{systemStats.totalXP}</div>
             </div>
             
-            <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 p-4 rounded-lg border border-green-200">
+            <div className="bg-gradient-to-br from-gaming-success/5 to-gaming-success/10 p-4 rounded-lg border border-gaming-success/20">
               <div className="flex items-center gap-2 mb-2">
-                <TrendingUp className="h-4 w-4 text-green-600" />
-                <span className="text-sm font-medium">Completion Rate</span>
+                <TrendingUp className="h-4 w-4 text-gaming-success" />
+                <span className="text-sm font-medium text-foreground">Completion Rate</span>
               </div>
-              <div className="text-2xl font-bold text-green-600">{systemStats.completionRate}%</div>
+              <div className="text-2xl font-bold text-gaming-success">{systemStats.completionRate}%</div>
             </div>
             
-            <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/10 p-4 rounded-lg border border-purple-200">
+            <div className="bg-gradient-to-br from-gaming-epic/5 to-gaming-epic/10 p-4 rounded-lg border border-gaming-epic/20">
               <div className="flex items-center gap-2 mb-2">
-                <CheckCircle2 className="h-4 w-4 text-purple-600" />
-                <span className="text-sm font-medium">Active Nodes</span>
+                <CheckCircle2 className="h-4 w-4 text-gaming-epic" />
+                <span className="text-sm font-medium text-foreground">Active Nodes</span>
               </div>
-              <div className="text-2xl font-bold text-purple-600">{systemStats.activeStreaks}</div>
+              <div className="text-2xl font-bold text-gaming-epic">{systemStats.activeStreaks}</div>
             </div>
             
-            <div className="bg-gradient-to-br from-orange-500/10 to-orange-600/10 p-4 rounded-lg border border-orange-200">
+            <div className="bg-gradient-to-br from-gaming-warning/5 to-gaming-warning/10 p-4 rounded-lg border border-gaming-warning/20">
               <div className="flex items-center gap-2 mb-2">
-                <Target className="h-4 w-4 text-orange-600" />
-                <span className="text-sm font-medium">Efficiency</span>
+                <Target className="h-4 w-4 text-gaming-warning" />
+                <span className="text-sm font-medium text-foreground">Efficiency</span>
               </div>
-              <div className="text-2xl font-bold text-orange-600">{systemStats.efficiencyScore}%</div>
+              <div className="text-2xl font-bold text-gaming-warning">{systemStats.efficiencyScore}%</div>
             </div>
           </div>
 
@@ -245,26 +245,26 @@ export const UnifiedProgressSystem: React.FC<UnifiedProgressSystemProps> = ({
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-primary/5 rounded-lg border border-primary/20">
                   <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-blue-600" />
-                    <span className="text-sm font-medium">Peak Productivity</span>
+                    <Clock className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-medium text-foreground">Peak Productivity</span>
                   </div>
                   <Badge>9:00 - 11:00 AM</Badge>
                 </div>
                 
-                <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-gaming-success/5 rounded-lg border border-gaming-success/20">
                   <div className="flex items-center gap-2">
-                    <Target className="h-4 w-4 text-green-600" />
-                    <span className="text-sm font-medium">Focus Score</span>
+                    <Target className="h-4 w-4 text-gaming-success" />
+                    <span className="text-sm font-medium text-foreground">Focus Score</span>
                   </div>
                   <Badge variant="secondary">{systemStats.efficiencyScore}%</Badge>
                 </div>
                 
-                <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-gaming-epic/5 rounded-lg border border-gaming-epic/20">
                   <div className="flex items-center gap-2">
-                    <Zap className="h-4 w-4 text-purple-600" />
-                    <span className="text-sm font-medium">Energy Alignment</span>
+                    <Zap className="h-4 w-4 text-gaming-epic" />
+                    <span className="text-sm font-medium text-foreground">Energy Alignment</span>
                   </div>
                   <Badge>Optimal</Badge>
                 </div>

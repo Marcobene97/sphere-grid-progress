@@ -1,3 +1,4 @@
+import React from 'react';
 import { User } from '@/types';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
@@ -11,8 +12,13 @@ interface XPBarProps {
 }
 
 export const XPBar = ({ user, showRank = true, className = '' }: XPBarProps) => {
-  const { xp } = useXP();
+  const { xp, loadXP, isLoading } = useXP();
   const levelInfo = levelFromXP(xp);
+  
+  // Load XP from Supabase on mount
+  React.useEffect(() => {
+    loadXP();
+  }, [loadXP]);
   
   const xpInCurrentLevel = xp - levelInfo.current;
   const xpForNextLevel = levelInfo.next - levelInfo.current;

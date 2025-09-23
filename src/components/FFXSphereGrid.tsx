@@ -152,16 +152,32 @@ export const FFXSphereGrid: React.FC<FFXSphereGridProps> = ({
 
   // Update grid when nodes change
   useEffect(() => {
-    console.log('FFX Grid: Nodes updated:', nodes.length);
+    console.log('FFX Grid: Nodes updated:', nodes.length, 'nodes received');
+    console.log('FFX Grid: Sample node data:', nodes.slice(0, 2));
+    
+    if (nodes.length === 0) {
+      console.log('FFX Grid: No nodes provided, setting empty grid');
+      setGridNodes([]);
+      return;
+    }
+    
     const enhancedNodes = generateFFXLayout(nodes);
-    console.log('FFX Grid: Enhanced nodes:', enhancedNodes.length);
+    console.log('FFX Grid: Generated grid nodes:', enhancedNodes.length);
+    console.log('FFX Grid: Sample enhanced node:', enhancedNodes[0]);
+    
     setGridNodes(enhancedNodes);
   }, [nodes, generateFFXLayout]);
 
   // Render nodes and connections on canvas
   useEffect(() => {
-    console.log('FFX Grid: Rendering nodes on canvas:', fabricCanvas ? 'Canvas ready' : 'No canvas', gridNodes.length, 'nodes');
-    if (!fabricCanvas || gridNodes.length === 0) return;
+        console.log('FFX Grid: Canvas updated, nodes:', nodes.length);
+        console.log('FFX Grid: First 3 nodes:', nodes.slice(0, 3));
+        console.log('FFX Grid: Grid nodes state:', gridNodes.length);
+        
+        if (!fabricCanvas || gridNodes.length === 0) {
+          console.log('FFX Grid: Skipping render - Canvas:', !!fabricCanvas, 'Nodes:', gridNodes.length);
+          return;
+        }
 
     fabricCanvas.clear();
     fabricCanvas.backgroundColor = '#0a0a23';
@@ -399,8 +415,13 @@ export const FFXSphereGrid: React.FC<FFXSphereGridProps> = ({
             <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg">
               <div className="text-center text-white">
                 <Target className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p className="text-lg font-medium">No nodes to display</p>
-                <p className="text-sm opacity-75">Create tasks and nodes using the Brain Dump feature</p>
+                <p className="text-lg font-medium">No sphere nodes to display</p>
+                <p className="text-sm opacity-75">Create nodes using the Brain Dump feature or Node Creation Test</p>
+                <div className="mt-4 text-xs bg-black/30 p-3 rounded">
+                  <p>Debug: Received {nodes.length} nodes from props</p>
+                  <p>Generated {gridNodes.length} grid nodes</p>
+                  <p>Canvas objects: {fabricCanvas?.getObjects().length || 0}</p>
+                </div>
               </div>
             </div>
           )}
