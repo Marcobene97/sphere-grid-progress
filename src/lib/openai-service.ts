@@ -1,2 +1,5 @@
-// Updated OpenAI service that uses Supabase Edge Functions - replaces browser-based OpenAI calls
-export * from './openai-service-updated';
+// Placeholder for openai-service compatibility
+export const openaiService = {
+  generateTasks: async () => [],
+  analyzeTaskCompletion: async () => ({ feedback: '', nextSuggestions: [], focusInsights: '', bonusXP: 0 })
+};

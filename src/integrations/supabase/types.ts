@@ -14,45 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      achievements: {
-        Row: {
-          conditions: Json
-          created_at: string
-          description: string
-          icon: string
-          id: string
-          rarity: Database["public"]["Enums"]["achievement_rarity"]
-          title: string
-          unlocked_at: string | null
-          user_id: string
-          xp_reward: number
-        }
-        Insert: {
-          conditions: Json
-          created_at?: string
-          description: string
-          icon: string
-          id?: string
-          rarity: Database["public"]["Enums"]["achievement_rarity"]
-          title: string
-          unlocked_at?: string | null
-          user_id: string
-          xp_reward?: number
-        }
-        Update: {
-          conditions?: Json
-          created_at?: string
-          description?: string
-          icon?: string
-          id?: string
-          rarity?: Database["public"]["Enums"]["achievement_rarity"]
-          title?: string
-          unlocked_at?: string | null
-          user_id?: string
-          xp_reward?: number
-        }
-        Relationships: []
-      }
       day_plan_slots: {
         Row: {
           created_at: string
@@ -74,7 +35,7 @@ export type Database = {
           slot_start: string
           subtask_id?: string | null
           updated_at?: string
-          user_id: string
+          user_id?: string
         }
         Update: {
           created_at?: string
@@ -99,85 +60,70 @@ export type Database = {
       }
       nodes: {
         Row: {
-          branch: Database["public"]["Enums"]["node_branch"]
-          category: Database["public"]["Enums"]["node_category"]
           completed_at: string | null
           created_at: string
           deadline: string | null
           description: string | null
-          domain: string | null
+          domain: string
           est_total_minutes: number | null
-          goal_type: string | null
+          goal_type: string
           id: string
           mastered_at: string | null
-          metadata: Json | null
+          metadata: Json
           parent_id: string | null
           position_x: number
           position_y: number
           prerequisites: string[] | null
           progress: number
-          reward_skills: string[] | null
-          reward_xp: number
           status: Database["public"]["Enums"]["node_status"]
           time_spent: number
           title: string
-          type: Database["public"]["Enums"]["node_type"]
           unlocks: string[] | null
           updated_at: string
           user_id: string
         }
         Insert: {
-          branch: Database["public"]["Enums"]["node_branch"]
-          category: Database["public"]["Enums"]["node_category"]
           completed_at?: string | null
           created_at?: string
           deadline?: string | null
           description?: string | null
-          domain?: string | null
+          domain?: string
           est_total_minutes?: number | null
-          goal_type?: string | null
+          goal_type?: string
           id?: string
           mastered_at?: string | null
-          metadata?: Json | null
+          metadata?: Json
           parent_id?: string | null
           position_x?: number
           position_y?: number
           prerequisites?: string[] | null
           progress?: number
-          reward_skills?: string[] | null
-          reward_xp?: number
           status?: Database["public"]["Enums"]["node_status"]
           time_spent?: number
           title: string
-          type: Database["public"]["Enums"]["node_type"]
           unlocks?: string[] | null
           updated_at?: string
-          user_id: string
+          user_id?: string
         }
         Update: {
-          branch?: Database["public"]["Enums"]["node_branch"]
-          category?: Database["public"]["Enums"]["node_category"]
           completed_at?: string | null
           created_at?: string
           deadline?: string | null
           description?: string | null
-          domain?: string | null
+          domain?: string
           est_total_minutes?: number | null
-          goal_type?: string | null
+          goal_type?: string
           id?: string
           mastered_at?: string | null
-          metadata?: Json | null
+          metadata?: Json
           parent_id?: string | null
           position_x?: number
           position_y?: number
           prerequisites?: string[] | null
           progress?: number
-          reward_skills?: string[] | null
-          reward_xp?: number
           status?: Database["public"]["Enums"]["node_status"]
           time_spent?: number
           title?: string
-          type?: Database["public"]["Enums"]["node_type"]
           unlocks?: string[] | null
           updated_at?: string
           user_id?: string
@@ -226,7 +172,7 @@ export type Database = {
           rank?: string
           resilience_pillar?: number
           total_xp?: number
-          user_id: string
+          user_id?: string
           xp_to_next_level?: number
         }
         Update: {
@@ -249,177 +195,6 @@ export type Database = {
         }
         Relationships: []
       }
-      reflections: {
-        Row: {
-          bonus_xp: number
-          created_at: string
-          focus_insights: string | null
-          id: string
-          next_suggestions: string[] | null
-          reflection: string
-          session_id: string | null
-          task_id: string | null
-          user_id: string
-          xp_breakdown: Json | null
-        }
-        Insert: {
-          bonus_xp?: number
-          created_at?: string
-          focus_insights?: string | null
-          id?: string
-          next_suggestions?: string[] | null
-          reflection: string
-          session_id?: string | null
-          task_id?: string | null
-          user_id: string
-          xp_breakdown?: Json | null
-        }
-        Update: {
-          bonus_xp?: number
-          created_at?: string
-          focus_insights?: string | null
-          id?: string
-          next_suggestions?: string[] | null
-          reflection?: string
-          session_id?: string | null
-          task_id?: string | null
-          user_id?: string
-          xp_breakdown?: Json | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "reflections_session_id_fkey"
-            columns: ["session_id"]
-            isOneToOne: false
-            referencedRelation: "sessions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reflections_task_id_fkey"
-            columns: ["task_id"]
-            isOneToOne: false
-            referencedRelation: "tasks"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      sessions: {
-        Row: {
-          analysis: Json | null
-          category: Database["public"]["Enums"]["task_category"]
-          created_at: string
-          duration: number
-          end_time: string | null
-          focus_score: number
-          id: string
-          node_id: string | null
-          notes: string | null
-          start_time: string
-          task_id: string | null
-          type: Database["public"]["Enums"]["session_type"]
-          user_id: string
-          xp_earned: number
-        }
-        Insert: {
-          analysis?: Json | null
-          category: Database["public"]["Enums"]["task_category"]
-          created_at?: string
-          duration?: number
-          end_time?: string | null
-          focus_score?: number
-          id?: string
-          node_id?: string | null
-          notes?: string | null
-          start_time: string
-          task_id?: string | null
-          type?: Database["public"]["Enums"]["session_type"]
-          user_id: string
-          xp_earned?: number
-        }
-        Update: {
-          analysis?: Json | null
-          category?: Database["public"]["Enums"]["task_category"]
-          created_at?: string
-          duration?: number
-          end_time?: string | null
-          focus_score?: number
-          id?: string
-          node_id?: string | null
-          notes?: string | null
-          start_time?: string
-          task_id?: string | null
-          type?: Database["public"]["Enums"]["session_type"]
-          user_id?: string
-          xp_earned?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "sessions_node_id_fkey"
-            columns: ["node_id"]
-            isOneToOne: false
-            referencedRelation: "nodes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sessions_task_id_fkey"
-            columns: ["task_id"]
-            isOneToOne: false
-            referencedRelation: "tasks"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      settings: {
-        Row: {
-          created_at: string
-          daily_xp_goal: number
-          dungeon_bonus: boolean
-          efficiency_slope: number
-          id: string
-          idle_timeout: number
-          min_focus_minutes: number
-          reminder_time: string
-          sound_enabled: boolean
-          streak_cap: number
-          theme: string
-          updated_at: string
-          user_id: string
-          work_session_length: number
-        }
-        Insert: {
-          created_at?: string
-          daily_xp_goal?: number
-          dungeon_bonus?: boolean
-          efficiency_slope?: number
-          id?: string
-          idle_timeout?: number
-          min_focus_minutes?: number
-          reminder_time?: string
-          sound_enabled?: boolean
-          streak_cap?: number
-          theme?: string
-          updated_at?: string
-          user_id: string
-          work_session_length?: number
-        }
-        Update: {
-          created_at?: string
-          daily_xp_goal?: number
-          dungeon_bonus?: boolean
-          efficiency_slope?: number
-          id?: string
-          idle_timeout?: number
-          min_focus_minutes?: number
-          reminder_time?: string
-          sound_enabled?: boolean
-          streak_cap?: number
-          theme?: string
-          updated_at?: string
-          user_id?: string
-          work_session_length?: number
-        }
-        Relationships: []
-      }
       subtasks: {
         Row: {
           created_at: string
@@ -428,7 +203,7 @@ export type Database = {
           hard_window: unknown | null
           id: string
           seq: number | null
-          status: string
+          status: Database["public"]["Enums"]["subtask_status"]
           tags: string[] | null
           task_id: string
           title: string
@@ -442,12 +217,12 @@ export type Database = {
           hard_window?: unknown | null
           id?: string
           seq?: number | null
-          status?: string
+          status?: Database["public"]["Enums"]["subtask_status"]
           tags?: string[] | null
           task_id: string
           title: string
           updated_at?: string
-          user_id: string
+          user_id?: string
         }
         Update: {
           created_at?: string
@@ -456,7 +231,7 @@ export type Database = {
           hard_window?: unknown | null
           id?: string
           seq?: number | null
-          status?: string
+          status?: Database["public"]["Enums"]["subtask_status"]
           tags?: string[] | null
           task_id?: string
           title?: string
@@ -498,12 +273,12 @@ export type Database = {
         }
         Insert: {
           actual_time?: number | null
-          category: Database["public"]["Enums"]["task_category"]
+          category?: Database["public"]["Enums"]["task_category"]
           completed_at?: string | null
           context?: string | null
           created_at?: string
           description?: string | null
-          difficulty: Database["public"]["Enums"]["task_difficulty"]
+          difficulty?: Database["public"]["Enums"]["task_difficulty"]
           due_date?: string | null
           energy?: string | null
           estimated_time?: number
@@ -514,7 +289,7 @@ export type Database = {
           tags?: string[] | null
           title: string
           updated_at?: string
-          user_id: string
+          user_id?: string
           value_score?: number | null
           xp_reward?: number
         }
@@ -565,7 +340,7 @@ export type Database = {
           id?: string
           meta?: Json | null
           source: string
-          user_id: string
+          user_id?: string
         }
         Update: {
           amount?: number
@@ -599,6 +374,7 @@ export type Database = {
         | "mastered"
       node_type: "basic" | "intermediate" | "advanced" | "master"
       session_type: "deep_work" | "practice" | "learning" | "review"
+      subtask_status: "todo" | "in_progress" | "done" | "blocked"
       task_category: "programming" | "finance" | "music" | "general"
       task_difficulty: "basic" | "intermediate" | "advanced"
       task_status: "pending" | "in_progress" | "completed" | "cancelled"
@@ -741,6 +517,7 @@ export const Constants = {
       ],
       node_type: ["basic", "intermediate", "advanced", "master"],
       session_type: ["deep_work", "practice", "learning", "review"],
+      subtask_status: ["todo", "in_progress", "done", "blocked"],
       task_category: ["programming", "finance", "music", "general"],
       task_difficulty: ["basic", "intermediate", "advanced"],
       task_status: ["pending", "in_progress", "completed", "cancelled"],

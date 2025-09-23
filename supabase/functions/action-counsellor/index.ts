@@ -8,570 +8,265 @@ const corsHeaders = {
 };
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
-
-interface SubtaskBreakdown {
-  title: string;
-  estMinutes: number;
-  context: string;
-  energy: string;
-  tags: string[];
-  seq: number;
-}
-
-interface MixingConstraints {
-  dayStart: string;
-  dayEnd: string;
-  sprintDuration: number;
-  breakDuration: number;
-}
+const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+const openAIApiKey = Deno.env.get('OPENAI_API_KEY')!;
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('No authorization header');
-    }
+    const { action, payload } = await req.json();
+    console.log(`[Action Counsellor] Action: ${action}`);
 
-    const { action, ...payload } = await req.json();
-    console.log('Action Counsellor called:', { action, payload });
+    const authHeader = req.headers.get('Authorization')!;
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
 
     switch (action) {
-      case 'breakdown_task':
-        return await breakdownTask(supabase, authHeader, payload);
-      case 'build_day_plan':
-        return await buildDayPlan(supabase, authHeader, payload);
-      case 'seed_mindmap':
-        return await seedMindmap(supabase, authHeader, payload);
+      case 'analyzeTask':
+        return await analyzeTask(supabase, payload);
+      case 'breakdownTask':
+        return await breakdownTask(supabase, payload);
+      case 'connectToNodes':
+        return await connectToNodes(supabase, payload);
       default:
         throw new Error(`Unknown action: ${action}`);
     }
   } catch (error) {
-    console.error('Action Counsellor error:', error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
-    );
+    console.error('[Action Counsellor] Error:', error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });
 
-async function breakdownTask(supabase: any, authHeader: string, payload: any) {
-  const { taskId, nodeId } = payload;
+async function analyzeTask(supabase: any, payload: any) {
+  const { taskTitle, taskDescription, existingNodes } = payload;
   
-  // Get user ID from auth header
-  const { data: { user } } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
-  if (!user) throw new Error('Unauthorized');
+  console.log(`[analyzeTask] Processing task: ${taskTitle}`);
+  
+  // Get user's existing nodes for context
+  const { data: nodes } = await supabase
+    .from('nodes')
+    .select('id, title, domain, description')
+    .limit(20);
 
-  // Fetch task details
+  const nodeContext = nodes?.map(n => `${n.domain}: ${n.title}`).join(', ') || 'No existing nodes';
+
+  const prompt = `
+    Analyze this task and provide recommendations:
+    
+    Task: "${taskTitle}"
+    Description: "${taskDescription || ''}"
+    
+    Existing skill nodes: ${nodeContext}
+    
+    Provide a JSON response with:
+    {
+      "connectedNodes": ["node_id1", "node_id2"], // IDs of existing nodes this task connects to
+      "suggestedNewNodes": [
+        {
+          "title": "Node Title",
+          "domain": "programming|health|finance|learning|general",
+          "description": "Brief description",
+          "goalType": "habit|project|one-off"
+        }
+      ],
+      "taskAnalysis": {
+        "category": "programming|health|finance|learning|general",
+        "difficulty": "basic|intermediate|advanced",
+        "estimatedTime": 45, // minutes
+        "priority": 3, // 1-5
+        "context": "desk|gym|errand|reading|quiet",
+        "energy": "low|medium|high",
+        "valueScore": 4 // 1-5
+      },
+      "reasoning": "Explanation of connections and recommendations"
+    }
+  `;
+
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${openAIApiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: 'You are an expert task analyzer. Always respond with valid JSON.' },
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0.7,
+    }),
+  });
+
+  const aiData = await response.json();
+  const analysis = JSON.parse(aiData.choices[0].message.content);
+  
+  console.log(`[analyzeTask] Analysis complete for: ${taskTitle}`);
+  
+  return new Response(JSON.stringify({ success: true, analysis }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
+async function breakdownTask(supabase: any, payload: any) {
+  const { taskId } = payload;
+  
+  console.log(`[breakdownTask] Breaking down task: ${taskId}`);
+  
+  // Get task details
   const { data: task } = await supabase
     .from('tasks')
     .select('*')
     .eq('id', taskId)
-    .eq('user_id', user.id)
     .single();
 
-  if (!task) throw new Error('Task not found');
+  if (!task) {
+    throw new Error('Task not found');
+  }
 
-  // Generate subtasks using AI or heuristics
-  const subtasks = await generateSubtasks(task);
+  const prompt = `
+    Break down this task into actionable subtasks:
+    
+    Task: "${task.title}"
+    Description: "${task.description || ''}"
+    Estimated Time: ${task.estimated_time} minutes
+    Context: ${task.context}
+    Energy Level: ${task.energy}
+    
+    Create 3-10 subtasks that:
+    - Are specific and actionable
+    - Have realistic time estimates (5-45 minutes each)
+    - Consider the context and energy requirements
+    - Are ordered logically for completion
+    
+    Provide a JSON response with:
+    {
+      "subtasks": [
+        {
+          "title": "Specific subtask title",
+          "estMinutes": 25,
+          "seq": 1,
+          "tags": ["tag1", "tag2"],
+          "dependencies": [] // titles of other subtasks that must be done first
+        }
+      ],
+      "totalEstimatedTime": 120, // sum of all subtask times
+      "reasoning": "Brief explanation of the breakdown approach"
+    }
+  `;
 
-  // Store subtasks in database
-  const subtaskRecords = subtasks.map((subtask, index) => ({
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${openAIApiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: 'You are an expert at breaking down complex tasks into manageable subtasks. Always respond with valid JSON.' },
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0.7,
+    }),
+  });
+
+  const aiData = await response.json();
+  const breakdown = JSON.parse(aiData.choices[0].message.content);
+  
+  // Create subtasks in database
+  const subtaskInserts = breakdown.subtasks.map((subtask: any, index: number) => ({
     task_id: taskId,
-    user_id: user.id,
     title: subtask.title,
     est_minutes: subtask.estMinutes,
-    context: subtask.context,
-    energy: subtask.energy,
-    tags: subtask.tags,
-    seq: index,
+    seq: index + 1,
+    tags: subtask.tags || [],
     status: 'todo'
   }));
 
-  const { data: createdSubtasks, error } = await supabase
+  const { data: createdSubtasks } = await supabase
     .from('subtasks')
-    .insert(subtaskRecords)
+    .insert(subtaskInserts)
     .select();
 
-  if (error) throw error;
-
-  // Update task with estimated total minutes
-  const totalMinutes = subtasks.reduce((sum, s) => sum + s.estMinutes, 0);
+  // Update task with new estimated time
   await supabase
     .from('tasks')
-    .update({ estimated_time: totalMinutes })
+    .update({ estimated_time: breakdown.totalEstimatedTime })
     .eq('id', taskId);
-
-  return new Response(
-    JSON.stringify({ subtasks: createdSubtasks, totalMinutes }),
-    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-  );
+  
+  console.log(`[breakdownTask] Created ${createdSubtasks?.length || 0} subtasks for task: ${taskId}`);
+  
+  return new Response(JSON.stringify({ 
+    success: true, 
+    subtasks: createdSubtasks,
+    breakdown: breakdown.reasoning
+  }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
 }
 
-async function generateSubtasks(task: any): Promise<SubtaskBreakdown[]> {
-  // Rule-based breakdown for reliability
-  const subtasks: SubtaskBreakdown[] = [];
-  const title = task.title.toLowerCase();
-  const estTime = task.estimated_time || 60;
+async function connectToNodes(supabase: any, payload: any) {
+  const { taskId, nodeIds, createNewNodes } = payload;
   
-  // Determine domain from task category and tags
-  const domain = task.category || 'general';
-  const tags = [domain];
+  console.log(`[connectToNodes] Connecting task ${taskId} to nodes: ${nodeIds}`);
   
-  // Common patterns for different task types
-  if (title.includes('read') || title.includes('study')) {
-    const chunkSize = Math.min(45, Math.max(25, estTime / 3));
-    const chunks = Math.ceil(estTime / chunkSize);
-    
-    for (let i = 0; i < chunks; i++) {
-      subtasks.push({
-        title: `${task.title} - Part ${i + 1}`,
-        estMinutes: chunkSize,
-        context: 'reading',
-        energy: 'medium',
-        tags: [...tags, 'deep', 'focus'],
-        seq: i
-      });
-    }
-    
-    // Add notes/summary task
-    subtasks.push({
-      title: `Take notes on ${task.title}`,
-      estMinutes: 15,
-      context: 'desk',
-      energy: 'low',
-      tags: [...tags, 'shallow', 'notes'],
-      seq: subtasks.length
-    });
-  } else if (title.includes('practice') || title.includes('exercise')) {
-    const sessionSize = 25;
-    const sessions = Math.ceil(estTime / sessionSize);
-    
-    for (let i = 0; i < sessions; i++) {
-      subtasks.push({
-        title: `${task.title} - Session ${i + 1}`,
-        estMinutes: sessionSize,
-        context: title.includes('gym') ? 'gym' : 'desk',
-        energy: 'high',
-        tags: [...tags, 'practice', 'skill'],
-        seq: i
-      });
-    }
-  } else if (title.includes('complete') || title.includes('finish')) {
-    // Project completion - break into phases
-    subtasks.push({
-      title: `Plan approach for ${task.title}`,
-      estMinutes: 15,
-      context: 'desk',
-      energy: 'medium',
-      tags: [...tags, 'shallow', 'planning'],
-      seq: 0
-    });
-    
-    const workTime = estTime - 30; // Reserve time for planning and review
-    const workChunks = Math.ceil(workTime / 45);
-    
-    for (let i = 0; i < workChunks; i++) {
-      subtasks.push({
-        title: `Work on ${task.title} - Phase ${i + 1}`,
-        estMinutes: Math.min(45, workTime - (i * 45)),
-        context: 'desk',
-        energy: 'high',
-        tags: [...tags, 'deep', 'implementation'],
-        seq: i + 1
-      });
-    }
-    
-    subtasks.push({
-      title: `Review and finalize ${task.title}`,
-      estMinutes: 15,
-      context: 'desk',
-      energy: 'medium',
-      tags: [...tags, 'shallow', 'review'],
-      seq: subtasks.length
-    });
-  } else {
-    // Generic breakdown
-    const chunkSize = 45;
-    const chunks = Math.ceil(estTime / chunkSize);
-    
-    for (let i = 0; i < chunks; i++) {
-      subtasks.push({
-        title: `${task.title} - Part ${i + 1}`,
-        estMinutes: Math.min(chunkSize, estTime - (i * chunkSize)),
-        context: 'desk',
-        energy: 'medium',
-        tags: [...tags, 'work'],
-        seq: i
-      });
-    }
+  // Connect task to existing nodes
+  if (nodeIds && nodeIds.length > 0) {
+    // For now, we'll connect to the first node (tasks can have one primary node)
+    await supabase
+      .from('tasks')
+      .update({ node_id: nodeIds[0] })
+      .eq('id', taskId);
   }
   
-  return subtasks.slice(0, 10); // Limit to max 10 subtasks
-}
-
-async function buildDayPlan(supabase: any, authHeader: string, payload: any) {
-  const { date, constraints = {} } = payload;
-  
-  const { data: { user } } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
-  if (!user) throw new Error('Unauthorized');
-
-  const mixingConstraints: MixingConstraints = {
-    dayStart: constraints.dayStart || '06:00',
-    dayEnd: constraints.dayEnd || '19:00',
-    sprintDuration: constraints.sprintDuration || 45,
-    breakDuration: constraints.breakDuration || 15,
-    ...constraints
-  };
-
-  // Clear existing non-locked slots for the date
-  await supabase
-    .from('day_plan_slots')
-    .delete()
-    .eq('user_id', user.id)
-    .eq('date', date)
-    .eq('locked', false);
-
-  // Get candidate subtasks
-  const { data: subtasks } = await supabase
-    .from('subtasks')
-    .select(`
-      *,
-      tasks!inner(*)
-    `)
-    .eq('user_id', user.id)
-    .eq('status', 'todo');
-
-  // Get existing locked slots
-  const { data: lockedSlots } = await supabase
-    .from('day_plan_slots')
-    .select('*')
-    .eq('user_id', user.id)
-    .eq('date', date)
-    .eq('locked', true);
-
-  // Generate time slots
-  const slots = generateTimeSlots(date, mixingConstraints, lockedSlots || []);
-  
-  // Apply mixing algorithm
-  const filledSlots = applyMixingAlgorithm(slots, subtasks || [], mixingConstraints);
-
-  // Insert new slots
-  const slotRecords = filledSlots
-    .filter(slot => !slot.locked && slot.subtask_id) // Only insert new non-locked slots with subtasks
-    .map(slot => ({
-      user_id: user.id,
-      date,
-      slot_start: slot.slot_start,
-      slot_end: slot.slot_end,
-      subtask_id: slot.subtask_id,
-      locked: false
-    }));
-
-  if (slotRecords.length > 0) {
-    const { error } = await supabase
-      .from('day_plan_slots')
-      .insert(slotRecords);
-
-    if (error) throw error;
-  }
-
-  return new Response(
-    JSON.stringify({ 
-      slotsCreated: slotRecords.length,
-      totalSlots: filledSlots.length,
-      date 
-    }),
-    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-  );
-}
-
-function generateTimeSlots(date: string, constraints: MixingConstraints, lockedSlots: any[]) {
-  const slots = [];
-  const startTime = new Date(`${date}T${constraints.dayStart}:00`);
-  const endTime = new Date(`${date}T${constraints.dayEnd}:00`);
-  
-  let currentTime = new Date(startTime);
-  
-  while (currentTime < endTime) {
-    const slotEnd = new Date(currentTime.getTime() + constraints.sprintDuration * 60000);
-    
-    // Check if this slot overlaps with any locked slot
-    const isLocked = lockedSlots.some(locked => {
-      const lockedStart = new Date(locked.slot_start);
-      const lockedEnd = new Date(locked.slot_end);
-      return (currentTime >= lockedStart && currentTime < lockedEnd) ||
-             (slotEnd > lockedStart && slotEnd <= lockedEnd);
-    });
-    
-    if (isLocked) {
-      // Find the next available time after locked slots
-      const nextAvailable = lockedSlots
-        .filter(locked => new Date(locked.slot_end) > currentTime)
-        .map(locked => new Date(locked.slot_end))
-        .sort((a, b) => a.getTime() - b.getTime())[0];
+  // Create new nodes if requested
+  let createdNodes = [];
+  if (createNewNodes && createNewNodes.length > 0) {
+    for (const nodeData of createNewNodes) {
+      const { data: newNode } = await supabase
+        .from('nodes')
+        .insert({
+          title: nodeData.title,
+          description: nodeData.description,
+          domain: nodeData.domain,
+          goal_type: nodeData.goalType,
+          position_x: Math.floor(Math.random() * 500),
+          position_y: Math.floor(Math.random() * 500),
+          status: 'available'
+        })
+        .select()
+        .single();
       
-      if (nextAvailable) {
-        currentTime = nextAvailable;
-        continue;
-      }
-    }
-    
-    slots.push({
-      slot_start: currentTime.toISOString(),
-      slot_end: slotEnd.toISOString(),
-      subtask_id: null,
-      locked: false
-    });
-    
-    // Add break time
-    currentTime = new Date(slotEnd.getTime() + constraints.breakDuration * 60000);
-  }
-  
-  return slots;
-}
-
-function applyMixingAlgorithm(slots: any[], subtasks: any[], constraints: MixingConstraints) {
-  const usedDomains = new Set<string>();
-  let lastDomain = '';
-  
-  for (const slot of slots) {
-    if (slot.locked) continue;
-    
-    const slotDuration = (new Date(slot.slot_end).getTime() - new Date(slot.slot_start).getTime()) / 60000;
-    
-    // Score and filter subtasks
-    const candidates = subtasks
-      .filter(subtask => subtask.est_minutes <= slotDuration + 5) // 5 min buffer
-      .map(subtask => ({
-        ...subtask,
-        score: calculateUrgencyValueScore(subtask, usedDomains, lastDomain)
-      }))
-      .sort((a, b) => b.score - a.score);
-    
-    if (candidates.length > 0) {
-      const selected = candidates[0];
-      slot.subtask_id = selected.id;
-      
-      // Update domain tracking
-      const domain = selected.tasks?.category || 'general';
-      usedDomains.add(domain);
-      lastDomain = domain;
-      
-      // Remove selected subtask from future consideration
-      const index = subtasks.findIndex(s => s.id === selected.id);
-      if (index > -1) subtasks.splice(index, 1);
-    }
-  }
-  
-  return slots;
-}
-
-function calculateUrgencyValueScore(subtask: any, usedDomains: Set<string>, lastDomain: string): number {
-  const task = subtask.tasks;
-  const hoursToDeadline = task.due_date 
-    ? (new Date(task.due_date).getTime() - Date.now()) / (1000 * 60 * 60)
-    : 48; // Default 48 hours if no deadline
-  
-  const deadlineFactor = 1 / Math.max(1, hoursToDeadline);
-  const wspt = (task.value_score || 3) / Math.max(1, subtask.est_minutes);
-  const priorityFactor = 0.5 + 0.5 * ((task.priority || 3) / 5);
-  
-  let score = 0.45 * deadlineFactor + 0.35 * wspt + 0.15 * priorityFactor;
-  
-  // Diversity boosts
-  const domain = task.category || 'general';
-  const streakBoost = domain === lastDomain ? 1.15 : 1.0;
-  const noveltyBoost = !usedDomains.has(domain) ? 1.10 : 1.0;
-  
-  score *= Math.max(streakBoost, noveltyBoost);
-  
-  return score;
-}
-
-async function seedMindmap(supabase: any, authHeader: string, payload: any) {
-  const { markdownContent } = payload;
-  const { data: { user } } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
-  if (!user) throw new Error('Unauthorized');
-
-  // Clear existing nodes
-  await supabase.from('nodes').delete().eq('user_id', user.id);
-
-  let mindmapData;
-
-  if (markdownContent && markdownContent.trim()) {
-    // Parse markdown content
-    mindmapData = parseMarkdownToNodes(markdownContent);
-  } else {
-    // Use default template
-    mindmapData = [
-      { title: 'Active Workflows', domain: 'general', parentId: null, x: 0, y: 0 },
-      { title: 'Programming', domain: 'Programming', parentId: 'Active Workflows', x: -300, y: 100 },
-      { title: 'Trading System of Agents', domain: 'Programming', parentId: 'Programming', x: -500, y: 200 },
-      { title: 'n8n', domain: 'Programming', parentId: 'Programming', x: -400, y: 200 },
-      { title: 'Heilbronn - C', domain: 'Programming', parentId: 'Programming', x: -300, y: 200 },
-      { title: 'Read Textbook', domain: 'Programming', parentId: 'Heilbronn - C', x: -300, y: 280 },
-      { title: 'Freecodecamp - Responsive Web Design', domain: 'Programming', parentId: 'Programming', x: -200, y: 200 },
-      { title: 'Complete registration form', domain: 'Programming', parentId: 'Freecodecamp - Responsive Web Design', x: -200, y: 280 },
-      { title: 'Excel Course', domain: 'Admin', parentId: 'Active Workflows', x: -100, y: 100 },
-      { title: 'Complete 1st run making notes', domain: 'Admin', parentId: 'Excel Course', x: -100, y: 180 },
-      { title: 'Self-hygene', domain: 'Health', parentId: 'Active Workflows', x: 100, y: 100 },
-      { title: 'Hair', domain: 'Health', parentId: 'Self-hygene', x: 50, y: 180 },
-      { title: 'teeth', domain: 'Health', parentId: 'Self-hygene', x: 100, y: 180 },
-      { title: 'Gym', domain: 'Health', parentId: 'Self-hygene', x: 150, y: 180 },
-      { title: 'Complex Systems reading / Logic', domain: 'Reading', parentId: 'Active Workflows', x: 300, y: 100 },
-      { title: 'Dune - Herbert', domain: 'Reading', parentId: 'Complex Systems reading / Logic', x: 200, y: 200 },
-      { title: 'Introduction to the Theory of Complex Systems', domain: 'Reading', parentId: 'Complex Systems reading / Logic', x: 300, y: 200 },
-      { title: 'The Logical Thinking Process: A Systems Approach to Complex Problem Solving', domain: 'Reading', parentId: 'Complex Systems reading / Logic', x: 400, y: 200 },
-      { title: 'Read Assassin\'s Creed', domain: 'Reading', parentId: 'Complex Systems reading / Logic', x: 250, y: 280 },
-      { title: 'Systems Design', domain: 'Reading', parentId: 'Complex Systems reading / Logic', x: 350, y: 280 },
-      { title: 'Reading', domain: 'Reading', parentId: 'Active Workflows', x: 500, y: 100 },
-      { title: 'Psychology', domain: 'Reading', parentId: 'Reading', x: 450, y: 180 },
-      { title: 'History', domain: 'Reading', parentId: 'Reading', x: 500, y: 180 },
-      { title: 'Epoche 2', domain: 'Reading', parentId: 'Reading', x: 550, y: 180 },
-      { title: 'DJ', domain: 'Music', parentId: 'Active Workflows', x: -300, y: -100 },
-      { title: 'Ableton', domain: 'Music', parentId: 'Active Workflows', x: -200, y: -100 },
-      { title: 'Driving License', domain: 'Admin', parentId: 'Active Workflows', x: -100, y: -100 },
-      { title: 'Practice questions till exam', domain: 'Admin', parentId: 'Driving License', x: -100, y: -180 },
-      { title: 'Vendita Locali', domain: 'Business', parentId: 'Active Workflows', x: 0, y: -100 },
-      { title: 'CRM for Sport Trainers', domain: 'Business', parentId: 'Active Workflows', x: 100, y: -100 },
-      { title: 'Viatore', domain: 'Business', parentId: 'Active Workflows', x: 200, y: -100 },
-      { title: 'Perizia indipendente - Garage', domain: 'Admin', parentId: 'Active Workflows', x: 300, y: -100 },
-      { title: 'Florio - serranda + interessi', domain: 'Admin', parentId: 'Active Workflows', x: 400, y: -100 }
-    ];
-  }
-
-  // Create nodes in order (parents first)
-  const nodeIdMap = new Map<string, string>();
-  const createdNodes = [];
-  
-  for (const nodeData of mindmapData) {
-    const parentId = nodeData.parentId ? nodeIdMap.get(nodeData.parentId) : null;
-    
-    const { data: createdNode } = await supabase
-      .from('nodes')
-      .insert({
-        user_id: user.id,
-        title: nodeData.title,
-        domain: nodeData.domain,
-        parent_id: parentId,
-        position_x: nodeData.x,
-        position_y: nodeData.y,
-        status: parentId ? 'available' : 'in_progress',
-        category: 'project',
-        branch: 'programming', // Default branch
-        type: 'basic',
-        reward_xp: 50,
-        description: `Working on ${nodeData.title}`,
-        goal_type: 'project',
-        unlocks: [], // Initialize empty unlocks array
-        prerequisites: parentId ? [parentId] : []
-      })
-      .select()
-      .single();
-
-    if (createdNode) {
-      nodeIdMap.set(nodeData.title, createdNode.id);
-      createdNodes.push({ ...createdNode, originalTitle: nodeData.title, parentTitle: nodeData.parentId });
-    }
-  }
-
-  // Now update nodes to set up unlocks relationships (parent unlocks children)
-  for (const node of createdNodes) {
-    if (node.parent_id) {
-      // Find the parent node and add this node to its unlocks array
-      const parentNode = createdNodes.find(n => n.id === node.parent_id);
-      if (parentNode) {
-        const { data: updatedParent } = await supabase
-          .from('nodes')
-          .select('unlocks')
-          .eq('id', parentNode.id)
-          .single();
-          
-        const currentUnlocks = updatedParent?.unlocks || [];
-        if (!currentUnlocks.includes(node.id)) {
+      if (newNode) {
+        createdNodes.push(newNode);
+        
+        // Connect task to the first new node created
+        if (createdNodes.length === 1) {
           await supabase
-            .from('nodes')
-            .update({
-              unlocks: [...currentUnlocks, node.id]
-            })
-            .eq('id', parentNode.id);
+            .from('tasks')
+            .update({ node_id: newNode.id })
+            .eq('id', taskId);
         }
       }
     }
   }
-
-  return new Response(
-    JSON.stringify({ nodesCreated: nodeIdMap.size }),
-    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-  );
-}
-
-function parseMarkdownToNodes(markdown: string): any[] {
-  const lines = markdown.split('\n').filter(line => line.trim());
-  const nodes: any[] = [];
-  const stack: string[] = []; // Track parent hierarchy
   
-  let x = 0, y = 0;
-  const spacing = 200;
+  console.log(`[connectToNodes] Created ${createdNodes.length} new nodes for task: ${taskId}`);
   
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed) continue;
-    
-    // Count heading level (# ## ### etc.)
-    const headingMatch = trimmed.match(/^(#{1,6})\s+(.+)$/);
-    if (!headingMatch) continue;
-    
-    const level = headingMatch[1].length;
-    const title = headingMatch[2];
-    
-    // Adjust stack to current level
-    while (stack.length >= level) {
-      stack.pop();
-    }
-    
-    // Determine parent
-    const parentId = stack.length > 0 ? stack[stack.length - 1] : null;
-    
-    // Determine domain from context or use title
-    const domain = getDomainFromTitle(title);
-    
-    // Calculate position
-    const nodeX = level * spacing + (Math.random() - 0.5) * 100;
-    const nodeY = y + (Math.random() - 0.5) * 50;
-    
-    nodes.push({
-      title,
-      domain,
-      parentId,
-      x: nodeX,
-      y: nodeY
-    });
-    
-    stack.push(title);
-    y += 120; // Vertical spacing
-  }
-  
-  return nodes;
-}
-
-function getDomainFromTitle(title: string): string {
-  const lower = title.toLowerCase();
-  if (lower.includes('program') || lower.includes('code') || lower.includes('dev')) return 'Programming';
-  if (lower.includes('read') || lower.includes('book') || lower.includes('study')) return 'Reading';
-  if (lower.includes('health') || lower.includes('gym') || lower.includes('fitness')) return 'Health';
-  if (lower.includes('admin') || lower.includes('license') || lower.includes('document')) return 'Admin';
-  if (lower.includes('business') || lower.includes('market') || lower.includes('sell')) return 'Business';
-  if (lower.includes('music') || lower.includes('dj') || lower.includes('audio')) return 'Music';
-  return 'General';
+  return new Response(JSON.stringify({ 
+    success: true, 
+    connectedNodes: nodeIds,
+    createdNodes
+  }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
 }
