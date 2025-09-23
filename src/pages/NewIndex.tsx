@@ -3,6 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { BrainDumpInput } from '@/components/BrainDumpInput';
 import { SphereGridNew } from '@/components/SphereGridNew';
 import { QuickActions } from '@/components/QuickActions';
+import { AIOptimizer } from '@/components/AIOptimizer';
+import { OptimizedSchedule } from '@/components/OptimizedSchedule';
 import { NodeSidePanel } from '@/components/NodeSidePanel';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -289,7 +291,11 @@ export default function NewIndex() {
           <div className="space-y-6">
             <BrainDumpInput onTasksGenerated={handleTasksGenerated} />
             
-            <QuickActions 
+            <AIOptimizer onOptimizationComplete={loadAppData} />
+
+            <OptimizedSchedule selectedDate={new Date().toISOString().split('T')[0]} />
+            
+            <QuickActions
               onTasksGenerated={handleTasksGenerated}
               onDayPlanGenerated={() => toast({ title: "Day Plan Generated!", description: "Your schedule has been optimized" })}
               onMindmapSeeded={loadAppData}
@@ -297,7 +303,7 @@ export default function NewIndex() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Stats</CardTitle>
+                <CardTitle>AI Progress Stats</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 <div className="flex justify-between">
@@ -312,6 +318,18 @@ export default function NewIndex() {
                   <span>Completed:</span>
                   <Badge variant="secondary">
                     {tasks.filter(t => t.status === 'completed').length}
+                  </Badge>
+                </div>
+                <div className="flex justify-between">
+                  <span>Avg Progress:</span>
+                  <Badge variant="outline">
+                    {nodes.length > 0 ? Math.round(nodes.reduce((sum, n) => sum + (n.progress || 0), 0) / nodes.length) : 0}%
+                  </Badge>
+                </div>
+                <div className="flex justify-between">
+                  <span>Efficiency Score:</span>
+                  <Badge className="bg-green-100 text-green-800">
+                    {Math.round((tasks.filter(t => t.status === 'completed').length / Math.max(tasks.length, 1)) * 100)}%
                   </Badge>
                 </div>
               </CardContent>

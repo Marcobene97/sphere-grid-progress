@@ -37,6 +37,12 @@ serve(async (req) => {
         return await processBrainDump(supabase, payload);
       case 'seedMindmap':
         return await seedMindmap(supabase, payload);
+      case 'optimizeCategories':
+        return await optimizeCategories(supabase, payload);
+      case 'autoScheduleTasks':
+        return await autoScheduleTasks(supabase, payload);
+      case 'rebalanceNodes':
+        return await rebalanceNodes(supabase, payload);
       default:
         throw new Error(`Unknown action: ${action}`);
     }
@@ -572,8 +578,481 @@ async function seedMindmap(supabase: any, payload: any) {
         existingCount: existingNodes.length 
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+  });
+}
+
+// Automatic category optimization and node management
+async function optimizeCategories(supabase: any, payload: any) {
+  console.log('[optimizeCategories] Starting category optimization');
+  
+  // Get all user's nodes and tasks
+  const { data: nodes } = await supabase.from('nodes').select('*');
+  const { data: tasks } = await supabase.from('tasks').select('*');
+  
+  const nodeContext = nodes?.map(n => `${n.title} (${n.domain}, progress: ${n.progress}%)`).join(', ') || 'No nodes';
+  const taskContext = tasks?.map(t => `${t.title} (${t.category}, ${t.estimated_time}min, priority: ${t.priority})`).join(', ') || 'No tasks';
+
+  const prompt = `
+    Analyze and optimize the user's skill nodes and task organization:
+    
+    EXISTING NODES: ${nodeContext}
+    EXISTING TASKS: ${taskContext}
+    
+    Provide intelligent recommendations for:
+    1. Node consolidation (merge similar/duplicate nodes)
+    2. Category restructuring (better domain organization)
+    3. Task-to-node connections based on relevance and efficiency
+    4. Node hierarchy and prerequisites
+    5. Priority rebalancing based on current progress and task difficulty
+    
+    Return JSON format:
+    {
+      "nodeUpdates": [
+        {
+          "nodeId": "existing_node_id",
+          "updates": {
+            "title": "optimized_title",
+            "domain": "best_domain",
+            "position": {"x": 100, "y": 200},
+            "priority": 1-5,
+            "prerequisites": ["node_id1", "node_id2"]
+          }
+        }
+      ],
+      "nodesToMerge": [
+        {
+          "primaryNodeId": "keep_this_node",
+          "mergeNodeIds": ["node_to_merge1", "node_to_merge2"],
+          "newTitle": "merged_title"
+        }
+      ],
+      "taskConnections": [
+        {
+          "taskId": "task_id",
+          "bestNodeId": "optimal_node_id",
+          "reasoning": "why this connection makes sense"
+        }
+      ],
+      "newCategoryStructure": {
+        "programming": ["web-dev", "mobile", "ai"],
+        "health": ["fitness", "nutrition", "mental"],
+        "learning": ["books", "courses", "research"]
+      },
+      "reasoning": "Overall optimization strategy explanation"
     }
+  `;
+
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${openAIApiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: 'You are an expert at organizing and optimizing productivity systems. Always respond with valid JSON.' },
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0.3,
+    }),
+  });
+
+  const data = await response.json();
+  let content = data.choices[0].message.content;
+  if (content.startsWith('```json')) {
+    content = content.replace(/^```json\n?/, '').replace(/\n?```$/, '');
+  }
+  const optimization = JSON.parse(content);
+
+  // Apply the optimizations
+  let updatesApplied = 0;
+  
+  // Update existing nodes
+  for (const update of optimization.nodeUpdates || []) {
+    await supabase
+      .from('nodes')
+      .update(update.updates)
+      .eq('id', update.nodeId);
+    updatesApplied++;
+  }
+  
+  // Update task connections
+  for (const connection of optimization.taskConnections || []) {
+    await supabase
+      .from('tasks')
+      .update({ node_id: connection.bestNodeId })
+      .eq('id', connection.taskId);
+    updatesApplied++;
+  }
+
+  console.log(`[optimizeCategories] Applied ${updatesApplied} optimizations`);
+  
+  return new Response(JSON.stringify({ 
+    success: true, 
+    optimization,
+    updatesApplied
+  }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
+// Intelligent task scheduling and calendar optimization
+async function autoScheduleTasks(supabase: any, payload: any) {
+  const { date, preferences = {} } = payload;
+  
+  console.log(`[autoScheduleTasks] Optimizing schedule for ${date}`);
+  
+  // Get tasks and subtasks with their current status
+  const { data: tasks } = await supabase
+    .from('tasks')
+    .select('*, subtasks(*)')
+    .in('status', ['pending', 'in_progress']);
+  
+  // Get existing schedule for the day
+  const { data: existingSlots } = await supabase
+    .from('day_plan_slots')
+    .select('*')
+    .eq('date', date);
+
+  const taskContext = tasks?.map(t => 
+    `${t.title} (${t.estimated_time}min, priority: ${t.priority}, difficulty: ${t.difficulty}, energy: ${t.energy}, subtasks: ${t.subtasks?.length || 0})`
+  ).join('; ') || 'No tasks';
+
+  const slotContext = existingSlots?.map(s => 
+    `${s.slot_start} - ${s.slot_end} (${s.locked ? 'locked' : 'flexible'})`
+  ).join('; ') || 'No existing slots';
+
+  const prompt = `
+    Create an optimized daily schedule for ${date}:
+    
+    AVAILABLE TASKS: ${taskContext}
+    EXISTING SCHEDULE: ${slotContext}
+    
+    USER PREFERENCES:
+    - Work hours: ${preferences.workHours || '9:00-17:00'}
+    - Energy peak: ${preferences.energyPeak || 'morning'}
+    - Break frequency: ${preferences.breakFreq || '25min work, 5min break'}
+    - Deep work blocks: ${preferences.deepWorkBlocks || '90-120 minutes'}
+    
+    SCHEDULING PRINCIPLES:
+    1. Match task energy requirements with user's energy levels
+    2. Group similar tasks for context switching efficiency
+    3. Schedule high-priority tasks during peak energy times
+    4. Break large tasks into manageable subtask blocks
+    5. Leave buffer time between complex tasks
+    6. Respect existing locked time slots
+    
+    Return JSON format:
+    {
+      "optimizedSlots": [
+        {
+          "startTime": "09:00",
+          "endTime": "10:30", 
+          "taskId": "task_id",
+          "subtaskId": "subtask_id_or_null",
+          "type": "work|break|buffer",
+          "reasoning": "why scheduled at this time",
+          "energyMatch": "high|medium|low"
+        }
+      ],
+      "taskPrioritization": [
+        {
+          "taskId": "task_id",
+          "newPriority": 1-5,
+          "schedulingWeight": 1-10,
+          "reasoning": "priority adjustment explanation"
+        }
+      ],
+      "suggestedBreakdowns": [
+        {
+          "taskId": "large_task_id",
+          "suggestedSubtasks": [
+            {
+              "title": "specific subtask",
+              "estimatedMinutes": 25,
+              "prerequisites": ["other_subtask"],
+              "energyLevel": "low|medium|high"
+            }
+          ]
+        }
+      ],
+      "efficiencyScore": 85,
+      "reasoning": "Overall scheduling strategy and optimizations applied"
+    }
+  `;
+
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${openAIApiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: 'You are an expert productivity scheduler. Always respond with valid JSON.' },
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0.2,
+    }),
+  });
+
+  const data = await response.json();
+  let content = data.choices[0].message.content;
+  if (content.startsWith('```json')) {
+    content = content.replace(/^```json\n?/, '').replace(/\n?```$/, '');
+  }
+  const schedule = JSON.parse(content);
+
+  // Apply suggested task breakdowns
+  for (const breakdown of schedule.suggestedBreakdowns || []) {
+    if (breakdown.suggestedSubtasks?.length > 0) {
+      const subtaskInserts = breakdown.suggestedSubtasks.map((subtask: any, index: number) => ({
+        task_id: breakdown.taskId,
+        title: subtask.title,
+        est_minutes: subtask.estimatedMinutes,
+        seq: index + 1,
+        tags: [`energy-${subtask.energyLevel}`],
+        status: 'todo'
+      }));
+
+      await supabase
+        .from('subtasks')
+        .insert(subtaskInserts);
+    }
+  }
+
+  // Update task priorities
+  for (const prioritization of schedule.taskPrioritization || []) {
+    await supabase
+      .from('tasks')
+      .update({ priority: prioritization.newPriority })
+      .eq('id', prioritization.taskId);
+  }
+
+  // Create optimized time slots
+  const newSlots = schedule.optimizedSlots?.map((slot: any) => ({
+    date,
+    slot_start: `${date}T${slot.startTime}:00`,
+    slot_end: `${date}T${slot.endTime}:00`,
+    subtask_id: slot.subtaskId || null,
+    locked: false
+  })) || [];
+
+  if (newSlots.length > 0) {
+    // Clear existing non-locked slots
+    await supabase
+      .from('day_plan_slots')
+      .delete()
+      .eq('date', date)
+      .eq('locked', false);
+
+    // Insert new optimized slots
+    await supabase
+      .from('day_plan_slots')
+      .insert(newSlots);
+  }
+
+  console.log(`[autoScheduleTasks] Created ${newSlots.length} optimized time slots`);
+  
+  return new Response(JSON.stringify({ 
+    success: true, 
+    schedule,
+    slotsCreated: newSlots.length
+  }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
+// Node rebalancing based on progress and task completion
+async function rebalanceNodes(supabase: any, payload: any) {
+  console.log('[rebalanceNodes] Starting node rebalancing');
+  
+  // Get nodes with their connected tasks and current progress
+  const { data: nodes } = await supabase
+    .from('nodes')
+    .select(`
+      *,
+      tasks(id, status, estimated_time, actual_time, priority, difficulty)
+    `);
+
+  const nodeAnalysis = nodes?.map(node => {
+    const tasks = node.tasks || [];
+    const completedTasks = tasks.filter((t: any) => t.status === 'completed');
+    const pendingTasks = tasks.filter((t: any) => t.status === 'pending');
+    
+    return {
+      ...node,
+      taskCount: tasks.length,
+      completedCount: completedTasks.length,
+      pendingCount: pendingTasks.length,
+      avgTaskDifficulty: tasks.length > 0 ? 
+        tasks.reduce((sum: number, t: any) => sum + (t.difficulty === 'basic' ? 1 : t.difficulty === 'intermediate' ? 2 : 3), 0) / tasks.length : 0,
+      totalEstimatedTime: tasks.reduce((sum: number, t: any) => sum + (t.estimated_time || 0), 0),
+      totalCompletedTime: completedTasks.reduce((sum: number, t: any) => sum + (t.actual_time || t.estimated_time || 0), 0)
+    };
+  }) || [];
+
+  const prompt = `
+    Analyze and rebalance skill nodes based on usage patterns and progress:
+    
+    NODE ANALYSIS: ${JSON.stringify(nodeAnalysis, null, 2)}
+    
+    Provide intelligent rebalancing recommendations:
+    1. Identify underutilized nodes (low task count, low progress)
+    2. Find overloaded nodes (too many pending tasks)
+    3. Suggest node merging or splitting
+    4. Recommend progress updates based on completed work
+    5. Optimize node positioning for better workflow
+    
+    Return JSON format:
+    {
+      "nodeRebalancing": [
+        {
+          "nodeId": "node_id",
+          "action": "merge|split|archive|prioritize",
+          "newProgress": 0-100,
+          "newPosition": {"x": 100, "y": 200},
+          "reasoning": "why this change is recommended"
+        }
+      ],
+      "nodeMergers": [
+        {
+          "primaryNodeId": "main_node",
+          "mergeNodeIds": ["node1", "node2"],
+          "newTitle": "consolidated_title",
+          "transferTasks": true
+        }
+      ],
+      "nodeSplits": [
+        {
+          "originalNodeId": "overloaded_node",
+          "newNodes": [
+            {
+              "title": "specific_area_1", 
+              "domain": "same_domain",
+              "taskIds": ["task1", "task2"]
+            }
+          ]
+        }
+      ],
+      "progressUpdates": [
+        {
+          "nodeId": "node_id",
+          "calculatedProgress": 75,
+          "xpGained": 150,
+          "reasoning": "based on completed tasks and time spent"
+        }
+      ],
+      "efficiencyScore": 78,
+      "overallRecommendation": "strategic summary of changes"
+    }
+  `;
+
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${openAIApiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: 'You are an expert at analyzing productivity patterns and optimizing skill development systems. Always respond with valid JSON.' },
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0.3,
+    }),
+  });
+
+  const data = await response.json();
+  let content = data.choices[0].message.content;
+  if (content.startsWith('```json')) {
+    content = content.replace(/^```json\n?/, '').replace(/\n?```$/, '');
+  }
+  const rebalancing = JSON.parse(content);
+
+  let changesApplied = 0;
+
+  // Apply node updates
+  for (const update of rebalancing.nodeRebalancing || []) {
+    const updateData: any = {};
+    if (update.newProgress !== undefined) updateData.progress = update.newProgress;
+    if (update.newPosition) {
+      updateData.position_x = update.newPosition.x;
+      updateData.position_y = update.newPosition.y;
+    }
+    
+    if (Object.keys(updateData).length > 0) {
+      await supabase
+        .from('nodes')
+        .update(updateData)
+        .eq('id', update.nodeId);
+      changesApplied++;
+    }
+  }
+
+  // Apply progress updates and XP gains
+  for (const progressUpdate of rebalancing.progressUpdates || []) {
+    await supabase
+      .from('nodes')
+      .update({ progress: progressUpdate.calculatedProgress })
+      .eq('id', progressUpdate.nodeId);
+
+    // Add XP event
+    if (progressUpdate.xpGained > 0) {
+      await supabase
+        .from('xp_events')
+        .insert({
+          amount: progressUpdate.xpGained,
+          source: 'node_progress_update',
+          meta: { 
+            nodeId: progressUpdate.nodeId, 
+            reasoning: progressUpdate.reasoning 
+          }
+        });
+    }
+    changesApplied++;
+  }
+
+  // Handle node mergers
+  for (const merger of rebalancing.nodeMergers || []) {
+    if (merger.transferTasks) {
+      // Transfer tasks from merged nodes to primary node
+      for (const mergeNodeId of merger.mergeNodeIds) {
+        await supabase
+          .from('tasks')
+          .update({ node_id: merger.primaryNodeId })
+          .eq('node_id', mergeNodeId);
+      }
+      
+      // Archive merged nodes
+      await supabase
+        .from('nodes')
+        .update({ status: 'archived' })
+        .in('id', merger.mergeNodeIds);
+    }
+    
+    // Update primary node title
+    await supabase
+      .from('nodes')
+      .update({ title: merger.newTitle })
+      .eq('id', merger.primaryNodeId);
+    
+    changesApplied++;
+  }
+
+  console.log(`[rebalanceNodes] Applied ${changesApplied} rebalancing changes`);
+  
+  return new Response(JSON.stringify({ 
+    success: true, 
+    rebalancing,
+    changesApplied
+  }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
 
     // Insert all nodes
     const { data: createdNodes, error } = await supabase

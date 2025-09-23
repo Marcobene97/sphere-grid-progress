@@ -181,6 +181,43 @@ export class AIService {
     if (error) throw error;
     return data;
   }
+
+  // Auto-optimization methods
+  async optimizeCategories(): Promise<any> {
+    const { data, error } = await supabase.functions.invoke('action-counsellor', {
+      body: {
+        action: 'optimizeCategories',
+        payload: {}
+      }
+    });
+
+    if (error) throw error;
+    return data;
+  }
+
+  async autoScheduleTasks(date: string, preferences?: any): Promise<any> {
+    const { data, error } = await supabase.functions.invoke('action-counsellor', {
+      body: {
+        action: 'autoScheduleTasks',
+        payload: { date, preferences }
+      }
+    });
+
+    if (error) throw error;
+    return data;
+  }
+
+  async rebalanceNodes(): Promise<any> {
+    const { data, error } = await supabase.functions.invoke('action-counsellor', {
+      body: {
+        action: 'rebalanceNodes',
+        payload: {}
+      }
+    });
+
+    if (error) throw error;
+    return data;
+  }
 }
 
 export const aiService = new AIService();
