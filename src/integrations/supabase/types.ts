@@ -375,7 +375,14 @@ export type Database = {
       node_type: "basic" | "intermediate" | "advanced" | "master"
       session_type: "deep_work" | "practice" | "learning" | "review"
       subtask_status: "todo" | "in_progress" | "done" | "blocked"
-      task_category: "programming" | "finance" | "music" | "general"
+      task_category:
+        | "programming"
+        | "finance"
+        | "music"
+        | "general"
+        | "health"
+        | "learning"
+        | "creative"
       task_difficulty: "basic" | "intermediate" | "advanced"
       task_status: "pending" | "in_progress" | "completed" | "cancelled"
     }
@@ -518,7 +525,15 @@ export const Constants = {
       node_type: ["basic", "intermediate", "advanced", "master"],
       session_type: ["deep_work", "practice", "learning", "review"],
       subtask_status: ["todo", "in_progress", "done", "blocked"],
-      task_category: ["programming", "finance", "music", "general"],
+      task_category: [
+        "programming",
+        "finance",
+        "music",
+        "general",
+        "health",
+        "learning",
+        "creative",
+      ],
       task_difficulty: ["basic", "intermediate", "advanced"],
       task_status: ["pending", "in_progress", "completed", "cancelled"],
     },
