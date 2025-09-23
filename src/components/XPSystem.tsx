@@ -3,11 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Star, TrendingUp, Zap, Trophy } from 'lucide-react';
+import { Star, TrendingUp, Zap, Trophy, Award } from 'lucide-react';
 import { useXP } from '@/hooks/useXP';
 import { levelFromXP } from '@/lib/game/score';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { awardTaskXP, awardSessionXP, syncXP } from '@/lib/xp-sync';
 
 export const XPSystem: React.FC = () => {
   const { xp, loadXP, isLoading } = useXP();
@@ -37,11 +38,26 @@ export const XPSystem: React.FC = () => {
   };
 
   const handleRefresh = async () => {
-    await loadXP();
+    await syncXP();
     await loadRecentXPEvents();
     toast({
-      title: "XP Updated",
-      description: "Your experience points have been refreshed",
+      title: "XP Synchronized",
+      description: "Your experience points have been synced with database",
+    });
+  };
+
+  const handleTestXP = async () => {
+    const xpGained = await awardSessionXP({
+      durationMin: 25,
+      difficulty: 'intermediate',
+      streakDays: 1
+    });
+    
+    await loadRecentXPEvents();
+    
+    toast({
+      title: `+${xpGained} XP Awarded!`,
+      description: "Test work session completed",
     });
   };
 
@@ -57,10 +73,16 @@ export const XPSystem: React.FC = () => {
             <Star className="h-5 w-5 text-gaming-legendary" />
             Experience System
           </CardTitle>
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isLoading}>
-            <TrendingUp className="h-4 w-4 mr-2" />
-            Refresh
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isLoading}>
+              <TrendingUp className="h-4 w-4 mr-2" />
+              Sync XP
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleTestXP}>
+              <Award className="h-4 w-4 mr-2" />
+              Test +XP
+            </Button>
+          </div>
         </div>
       </CardHeader>
       
