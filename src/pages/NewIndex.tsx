@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Calendar, Target, Zap, Brain } from 'lucide-react';
 import { SphereNode, Task } from '@/types/new-index';
 import { aiService } from '@/lib/ai-service';
+import { MobileSync } from '@/components/MobileSync';
 import { useToast } from '@/hooks/use-toast';
 
 export default function NewIndex() {
@@ -53,6 +54,8 @@ export default function NewIndex() {
 
   const handleTasksGenerated = async (generatedTasks: any[], generatedNodes: any[]) => {
     try {
+      console.log('[handleTasksGenerated] Creating nodes and tasks:', { generatedNodes, generatedTasks });
+      
       // Create nodes first
       if (generatedNodes.length > 0) {
         const nodeInserts = generatedNodes.map(node => ({
@@ -60,14 +63,24 @@ export default function NewIndex() {
           description: node.description || '',
           domain: node.domain,
           goal_type: node.goalType,
-          position_x: Math.random() * 500,
-          position_y: Math.random() * 500,
+          position_x: Math.floor(Math.random() * 500),
+          position_y: Math.floor(Math.random() * 500),
+          metadata: { color: '#22c55e', xp: 0 }
         }));
+
+        console.log('[handleTasksGenerated] Inserting nodes:', nodeInserts);
         
-        const { data: newNodes } = await supabase.from('nodes').insert(nodeInserts).select();
-        if (newNodes) {
-          setNodes(prev => [...prev, ...newNodes.map(mapDbNodeToSphereNode)]);
+        const { data: createdNodes, error: nodeError } = await supabase
+          .from('nodes')
+          .insert(nodeInserts)
+          .select();
+
+        if (nodeError) {
+          console.error('Error creating nodes:', nodeError);
+          throw nodeError;
         }
+        
+        console.log('[handleTasksGenerated] Created nodes:', createdNodes);
       }
 
       // Create tasks
@@ -76,24 +89,43 @@ export default function NewIndex() {
           title: task.title,
           description: task.description || '',
           category: task.category,
-          difficulty: task.difficulty || 'basic',
-          priority: task.priority || 3,
-          estimated_time: task.estimatedTime || 30,
-          context: task.context || 'desk',
-          energy: task.energy || 'medium',
-          value_score: task.valueScore || 3,
+          difficulty: task.difficulty,
+          priority: task.priority,
+          estimated_time: task.estimatedTime,
+          context: task.context,
+          energy: task.energy,
+          value_score: task.valueScore,
+          tags: task.tags || []
         }));
 
-        const { data: newTasks } = await supabase.from('tasks').insert(taskInserts).select();
-        if (newTasks) {
-          setTasks(prev => [...prev, ...newTasks.map(mapDbTaskToTask)]);
+        console.log('[handleTasksGenerated] Inserting tasks:', taskInserts);
+        
+        const { data: createdTasks, error: taskError } = await supabase
+          .from('tasks')
+          .insert(taskInserts)
+          .select();
+
+        if (taskError) {
+          console.error('Error creating tasks:', taskError);
+          throw taskError;
         }
+        
+        console.log('[handleTasksGenerated] Created tasks:', createdTasks);
       }
+
+      // Reload data to show new items
+      await loadAppData();
+      
+      toast({
+        title: "Success!",
+        description: `Created ${generatedNodes.length} skill nodes and ${generatedTasks.length} tasks`,
+      });
+      
     } catch (error) {
-      console.error('Error creating tasks/nodes:', error);
+      console.error('Error creating nodes and tasks:', error);
       toast({
         title: "Error",
-        description: "Failed to save generated tasks and nodes",
+        description: "Failed to create nodes and tasks",
         variant: "destructive"
       });
     }
@@ -187,6 +219,34 @@ export default function NewIndex() {
     completedAt: dbTask.completed_at,
   });
 
+  const handleDataRestore = async (restoredData: any) => {
+    try {
+      // Clear existing data
+      setNodes([]);
+      setTasks([]);
+      
+      // Set restored data
+      if (restoredData.nodes) {
+        setNodes(restoredData.nodes.map(mapDbNodeToSphereNode));
+      }
+      if (restoredData.tasks) {
+        setTasks(restoredData.tasks.map(mapDbTaskToTask));
+      }
+      
+      toast({
+        title: "Data Restored!",
+        description: "Successfully restored your data from iCloud backup",
+      });
+    } catch (error) {
+      console.error('Error restoring data:', error);
+      toast({
+        title: "Restore Error",
+        description: "Failed to restore data",
+        variant: "destructive"
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -256,6 +316,12 @@ export default function NewIndex() {
                 </div>
               </CardContent>
             </Card>
+
+            <MobileSync 
+              nodes={nodes} 
+              tasks={tasks} 
+              onDataRestore={handleDataRestore}
+            />
           </div>
         </div>
 
