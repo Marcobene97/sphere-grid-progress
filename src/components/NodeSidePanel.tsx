@@ -1,241 +1,291 @@
-import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { 
-  X, 
-  Plus, 
-  Wand2, 
-  CheckCircle, 
-  Circle, 
-  Clock, 
-  Target,
-  Zap
+  X, Target, Clock, Trophy, Zap, 
+  Play, CheckCircle, BookOpen, Settings 
 } from 'lucide-react';
-import { SphereNode, Task, Subtask } from '@/types';
-import { supabase } from '@/integrations/supabase/client';
+import { SphereNode } from '@/types/new-index';
+import { Task } from '@/types/new-index';
+import { aiService } from '@/lib/ai-service';
 import { useToast } from '@/hooks/use-toast';
 
-import { useActionCounsellor } from '@/hooks/useActionCounsellor';
-
 interface NodeSidePanelProps {
-  node: SphereNode;
+  node: SphereNode | null;
   tasks: Task[];
-  subtasks: Subtask[];
   onClose: () => void;
-  onTaskUpdate: (taskId: string, updates: Partial<Task>) => void;
-  onSubtasksUpdate: () => void;
+  onTaskBreakdown: (taskId: string) => void;
+  onNodeUpdate: (nodeId: string, updates: Partial<SphereNode>) => void;
 }
 
-export const NodeSidePanel = ({ 
+export function NodeSidePanel({ 
   node, 
   tasks, 
-  subtasks, 
   onClose, 
-  onTaskUpdate,
-  onSubtasksUpdate 
-}: NodeSidePanelProps) => {
-  const { isGenerating, breakdownTask, buildDayPlan } = useActionCounsellor();
+  onTaskBreakdown,
+  onNodeUpdate 
+}: NodeSidePanelProps) {
+  const [isBreakingDown, setIsBreakingDown] = useState(false);
+  const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [showAddTask, setShowAddTask] = useState(false);
   const { toast } = useToast();
 
+  if (!node) return null;
+
   const nodeTasks = tasks.filter(task => task.nodeId === node.id);
-  const nodeSubtasks = subtasks.filter(subtask => 
-    nodeTasks.some(task => task.id === subtask.taskId)
-  );
+  const completedTasks = nodeTasks.filter(task => task.status === 'completed');
 
-  const completedTasks = nodeTasks.filter(task => task.status === 'completed').length;
-  const completedSubtasks = nodeSubtasks.filter(subtask => subtask.status === 'done').length;
-
-  const generateSubtasks = async (taskId: string) => {
-    const result = await breakdownTask(taskId, node.id);
-    if (result) {
-      onSubtasksUpdate();
+  const handleBreakdownAllTasks = async () => {
+    if (nodeTasks.length === 0) {
+      toast({
+        title: "No Tasks",
+        description: "Add some tasks to this node first",
+        variant: "destructive",
+      });
+      return;
     }
-  };
 
-  const addTaskToToday = async (taskId: string) => {
+    setIsBreakingDown(true);
     try {
-      const today = new Date().toISOString().split('T')[0];
-      
-      // First trigger subtask generation if not already done
-      const taskSubtasks = subtasks.filter(s => 
-        nodeTasks.find(t => t.id === s.taskId)?.id === taskId
-      );
-      
-      if (taskSubtasks.length === 0) {
-        await generateSubtasks(taskId);
+      for (const task of nodeTasks) {
+        if (task.status !== 'completed') {
+          await onTaskBreakdown(task.id);
+        }
       }
-
-      // Then build day plan
-      const result = await buildDayPlan(today);
-      if (result) {
-        toast({
-          title: "Added to Today!",
-          description: "Task has been scheduled in your daily plan.",
-        });
-      }
+      
+      toast({
+        title: "Tasks Broken Down!",
+        description: `Generated subtasks for ${nodeTasks.length} tasks`,
+      });
     } catch (error) {
-      console.error('Failed to add task to today:', error);
+      console.error('Error breaking down tasks:', error);
+      toast({
+        title: "Error",
+        description: "Failed to break down tasks",
+        variant: "destructive",
+      });
+    } finally {
+      setIsBreakingDown(false);
     }
   };
 
-const getDomainColor = (domain: string | undefined) => {
-  if (!domain) return 'hsl(var(--muted))';
-  switch (domain.toLowerCase()) {
-      case 'programming': return 'bg-gaming-info text-white';
-      case 'reading': return 'bg-gaming-warning text-white';
-      case 'health': return 'bg-gaming-success text-white';
-      case 'admin': return 'bg-gaming-rare text-white';
-      case 'business': return 'bg-gaming-legendary text-white';
-      case 'music': return 'bg-gaming-epic text-white';
-      default: return 'bg-muted text-muted-foreground';
-    }
+  const handleStatusUpdate = (newStatus: SphereNode['status']) => {
+    onNodeUpdate(node.id, { status: newStatus });
   };
 
-  const getStatusIcon = (status: string) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed':
-      case 'done':
-        return <CheckCircle className="w-4 h-4 text-gaming-success" />;
-      case 'in_progress':
-        return <Clock className="w-4 h-4 text-gaming-warning animate-spin" />;
-      default:
-        return <Circle className="w-4 h-4 text-muted-foreground" />;
+      case 'locked': return 'bg-gray-500';
+      case 'available': return 'bg-green-500';
+      case 'in_progress': return 'bg-blue-500';
+      case 'completed': return 'bg-purple-500';
+      case 'mastered': return 'bg-yellow-500';
+      default: return 'bg-gray-500';
+    }
+  };
+
+  const getDomainColor = (domain: string) => {
+    switch (domain) {
+      case 'programming': return 'text-cyan-400';
+      case 'health': return 'text-green-400';
+      case 'finance': return 'text-yellow-400';
+      case 'learning': return 'text-purple-400';
+      default: return 'text-gray-400';
     }
   };
 
   return (
-    <Card className="w-96 h-full border-l-4 border-l-primary">
-      <CardHeader className="pb-4">
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2">
-              <Badge className={getDomainColor(node.domain)}>
-                {node.domain}
-              </Badge>
-              <Badge variant="outline" className="capitalize">
-                {node.branch}
-              </Badge>
-            </div>
-            <CardTitle className="text-lg">{node.title}</CardTitle>
-            <CardDescription className="mt-1">
-              {node.description}
-            </CardDescription>
-          </div>
-          <Button variant="ghost" size="sm" onClick={onClose}>
-            <X className="w-4 h-4" />
-          </Button>
-        </div>
-
-        <div className="space-y-2 mt-4">
-          <div className="flex justify-between text-sm">
-            <span>Progress</span>
-            <span>{node.progress}%</span>
-          </div>
-          <Progress value={node.progress} className="h-2" />
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>{completedTasks}/{nodeTasks.length} tasks</span>
-            <span>{completedSubtasks}/{nodeSubtasks.length} subtasks</span>
-          </div>
-        </div>
-      </CardHeader>
-
-      <CardContent className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h4 className="font-semibold flex items-center gap-2">
-            <Target className="w-4 h-4" />
-            Tasks & Subtasks
-          </h4>
-          <Button size="sm" variant="outline">
-            <Plus className="w-4 h-4 mr-1" />
-            Add Task
-          </Button>
-        </div>
-
-        <ScrollArea className="h-64">
-          <div className="space-y-3">
-            {nodeTasks.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <Target className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">No tasks linked to this node yet.</p>
+    <div className="fixed inset-y-0 right-0 w-96 bg-background border-l shadow-lg z-50 overflow-y-auto">
+      <Card className="h-full rounded-none border-0">
+        <CardHeader className="border-b">
+          <div className="flex items-start justify-between">
+            <div className="space-y-2">
+              <CardTitle className="flex items-center gap-2">
+                <div className={`w-3 h-3 rounded-full ${getStatusColor(node.status)}`} />
+                {node.title}
+              </CardTitle>
+              <div className="flex items-center gap-2">
+                <Badge className={getDomainColor(node.domain)}>
+                  {node.domain}
+                </Badge>
+                <Badge variant="outline">
+                  {node.goalType}
+                </Badge>
               </div>
-            ) : (
-              nodeTasks.map(task => {
-                const taskSubtasks = subtasks.filter(s => s.taskId === task.id);
-                
-                return (
-                  <Card key={task.id} className="border-l-2 border-l-primary/30">
-                    <CardContent className="p-3">
-                      <div className="flex items-start gap-3">
-                        {getStatusIcon(task.status)}
-                        <div className="flex-1">
-                          <h5 className="font-medium text-sm mb-1">{task.title}</h5>
-                          
-                          <div className="flex items-center gap-2 mb-2 text-xs text-muted-foreground">
-                            <Clock className="w-3 h-3" />
-                            <span>{task.estimatedTime}m</span>
-                            <Badge variant="outline" className="text-xs">
-                              {task.difficulty}
-                            </Badge>
-                          </div>
-
-                          {taskSubtasks.length > 0 ? (
-                            <div className="space-y-1">
-                              <div className="text-xs text-muted-foreground mb-1">
-                                Subtasks ({taskSubtasks.filter(s => s.status === 'done').length}/{taskSubtasks.length}):
-                              </div>
-                              {taskSubtasks.slice(0, 3).map(subtask => (
-                                <div key={subtask.id} className="flex items-center gap-2 text-xs pl-2">
-                                  {getStatusIcon(subtask.status)}
-                                  <span className={subtask.status === 'done' ? 'line-through text-muted-foreground' : ''}>
-                                    {subtask.title}
-                                  </span>
-                                  <span className="text-muted-foreground">({subtask.estMinutes}m)</span>
-                                </div>
-                              ))}
-                              {taskSubtasks.length > 3 && (
-                                <div className="text-xs text-muted-foreground pl-6">
-                                  +{taskSubtasks.length - 3} more subtasks
-                                </div>
-                              )}
-                            </div>
-                          ) : (
-                            <div className="flex gap-1">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="text-xs h-6"
-                                onClick={() => generateSubtasks(task.id)}
-                                disabled={isGenerating}
-                              >
-                                <Wand2 className="w-3 h-3 mr-1" />
-                                Generate Plan
-                              </Button>
-                            </div>
-                          )}
-
-                          <div className="flex gap-1 mt-2">
-                            <Button
-                              size="sm"
-                              className="text-xs h-6"
-                              onClick={() => addTaskToToday(task.id)}
-                            >
-                              <Zap className="w-3 h-3 mr-1" />
-                              Add to Today
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })
-            )}
+            </div>
+            <Button variant="ghost" size="sm" onClick={onClose}>
+              <X className="h-4 w-4" />
+            </Button>
           </div>
-        </ScrollArea>
-      </CardContent>
-    </Card>
+        </CardHeader>
+        
+        <CardContent className="space-y-6 p-6">
+          {/* Description */}
+          {node.description && (
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Description</Label>
+              <p className="text-sm text-muted-foreground">{node.description}</p>
+            </div>
+          )}
+
+          {/* Progress */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium">Progress</Label>
+              <span className="text-sm text-muted-foreground">{node.progress}%</span>
+            </div>
+            <Progress value={node.progress} className="h-2" />
+            
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="flex items-center gap-2">
+                <Trophy className="h-4 w-4 text-yellow-500" />
+                <span>{node.metadata.xp || 0} XP</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-blue-500" />
+                <span>{node.timeSpent || 0}h</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Status Management */}
+          <div className="space-y-3">
+            <Label className="text-sm font-medium">Status</Label>
+            <div className="flex gap-2 flex-wrap">
+              {['available', 'in_progress', 'completed', 'mastered'].map((status) => (
+                <Button
+                  key={status}
+                  variant={node.status === status ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => handleStatusUpdate(status as SphereNode['status'])}
+                >
+                  {status.replace('_', ' ')}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          {/* Tasks */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium">Tasks</Label>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setShowAddTask(!showAddTask)}
+              >
+                Add Task
+              </Button>
+            </div>
+
+            {showAddTask && (
+              <div className="space-y-2 p-3 border rounded-lg">
+                <Input
+                  placeholder="Enter task title..."
+                  value={newTaskTitle}
+                  onChange={(e) => setNewTaskTitle(e.target.value)}
+                />
+                <div className="flex gap-2">
+                  <Button size="sm" disabled={!newTaskTitle.trim()}>
+                    Add
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      setShowAddTask(false);
+                      setNewTaskTitle('');
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              {nodeTasks.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  No tasks assigned to this node
+                </p>
+              ) : (
+                <>
+                  {nodeTasks.map((task) => (
+                    <div 
+                      key={task.id}
+                      className="p-3 border rounded-lg space-y-2"
+                    >
+                      <div className="flex items-start justify-between">
+                        <h4 className="font-medium text-sm">{task.title}</h4>
+                        <Badge 
+                          variant={task.status === 'completed' ? 'default' : 'secondary'}
+                          className="ml-2"
+                        >
+                          {task.status}
+                        </Badge>
+                      </div>
+                      
+                      {task.description && (
+                        <p className="text-xs text-muted-foreground">
+                          {task.description}
+                        </p>
+                      )}
+                      
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Clock className="h-3 w-3" />
+                        <span>{task.estimatedTime}min</span>
+                        <Badge variant="outline" className="text-xs">
+                          {task.context}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={handleBreakdownAllTasks}
+                    disabled={isBreakingDown}
+                  >
+                    {isBreakingDown ? (
+                      <>
+                        <Settings className="h-4 w-4 mr-2 animate-spin" />
+                        Breaking Down...
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="h-4 w-4 mr-2" />
+                        AI Breakdown All Tasks
+                      </>
+                    )}
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Statistics */}
+          {nodeTasks.length > 0 && (
+            <div className="space-y-3">
+              <Label className="text-sm font-medium">Statistics</Label>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="text-center p-3 bg-muted/50 rounded-lg">
+                  <div className="font-semibold">{completedTasks.length}</div>
+                  <div className="text-xs text-muted-foreground">Completed</div>
+                </div>
+                <div className="text-center p-3 bg-muted/50 rounded-lg">
+                  <div className="font-semibold">{nodeTasks.length - completedTasks.length}</div>
+                  <div className="text-xs text-muted-foreground">Remaining</div>
+                </div>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
-};
+}

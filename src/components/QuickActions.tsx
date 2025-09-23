@@ -1,64 +1,81 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Calendar, RefreshCw, Database, Settings, Upload } from 'lucide-react';
-import { useActionCounsellor } from '@/hooks/useActionCounsellor';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Upload, FileText, Calendar, Zap, Loader2 } from 'lucide-react';
+import { aiService } from '@/lib/ai-service';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 
 interface QuickActionsProps {
-  onPlanToday: () => void;
+  onTasksGenerated: (tasks: any[], nodes: any[]) => void;
+  onDayPlanGenerated: () => void;
 }
 
-export const QuickActions = ({ onPlanToday }: QuickActionsProps) => {
-  const [isOpen, setIsOpen] = useState(false);
+export function QuickActions({ onTasksGenerated, onDayPlanGenerated }: QuickActionsProps) {
   const [isImporting, setIsImporting] = useState(false);
-  const { buildDayPlan, isGenerating } = useActionCounsellor();
+  const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
   const { toast } = useToast();
 
-  const handlePlanToday = async () => {
-    try {
-      await buildDayPlan(new Date().toISOString().split('T')[0]);
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== 'text/markdown' && !file.name.endsWith('.md')) {
       toast({
-        title: "Daily Plan Generated!",
-        description: "Your optimized daily plan is ready in the Daily Plan tab.",
-      });
-      onPlanToday();
-      setIsOpen(false);
-    } catch (error) {
-      console.error('Failed to generate daily plan:', error);
-      toast({
-        title: "Planning Failed",
-        description: "Failed to generate daily plan. Please try again.",
+        title: "Invalid File Type",
+        description: "Please upload a Markdown (.md) file",
         variant: "destructive",
       });
+      return;
     }
-  };
 
-  const importMindmap = async () => {
     setIsImporting(true);
     try {
-      const { data, error } = await supabase.functions.invoke('action-counsellor', {
-        body: { 
-          action: 'seed_mindmap'
-        }
-      });
+      const content = await file.text();
+      const parsed = parseMarkdownToNodes(content);
+      
+      if (parsed.nodes.length === 0) {
+        toast({
+          title: "No Content Found",
+          description: "No valid headings found in the markdown file",
+          variant: "destructive",
+        });
+        return;
+      }
 
-      if (error) throw error;
+      // Convert parsed nodes to task format
+      const tasks = parsed.nodes.map(node => ({
+        title: node.title,
+        description: node.description || '',
+        category: inferCategoryFromTitle(node.title),
+        difficulty: 'basic',
+        priority: 3,
+        estimatedTime: 30,
+        context: 'desk',
+        energy: 'medium',
+        valueScore: 3
+      }));
 
+      const nodes = parsed.nodes.map(node => ({
+        title: node.title,
+        domain: inferDomainFromTitle(node.title),
+        description: node.description || '',
+        goalType: 'project'
+      }));
+
+      onTasksGenerated(tasks, nodes);
+      
       toast({
         title: "Mindmap Imported!",
-        description: `Created ${data.nodesCreated} new nodes from your mind-map structure.`,
+        description: `Created ${tasks.length} tasks from markdown headings`,
       });
       
-      setIsOpen(false);
-      window.location.reload();
     } catch (error) {
-      console.error('Failed to import mindmap:', error);
+      console.error('Error importing markdown:', error);
       toast({
         title: "Import Failed",
-        description: "Failed to import mindmap. Please try again.",
+        description: "Failed to process the markdown file",
         variant: "destructive",
       });
     } finally {
@@ -66,123 +83,150 @@ export const QuickActions = ({ onPlanToday }: QuickActionsProps) => {
     }
   };
 
-  const clearAllData = async () => {
-    if (window.confirm('This will delete all your nodes, tasks, and progress. This action cannot be undone. Are you sure?')) {
-      // This would require implementing a clear data function
+  const handleGenerateDayPlan = async () => {
+    setIsGeneratingPlan(true);
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const result = await aiService.generateDayPlan(today);
+      
+      onDayPlanGenerated();
+      
       toast({
-        title: "Data Cleared",
-        description: "All data has been cleared. You can now seed a new mindmap.",
+        title: "Day Plan Generated!",
+        description: `Created ${result.slotsCreated} scheduled time slots`,
       });
-      window.location.reload();
+    } catch (error) {
+      console.error('Error generating day plan:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate day plan",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingPlan(false);
     }
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogTrigger asChild>
-          <Button 
-            size="lg" 
-            className="rounded-full h-14 w-14 shadow-lg glow"
-            aria-label="Quick Actions"
-          >
-            <Settings className="w-6 h-6" />
-          </Button>
-        </DialogTrigger>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Quick Actions</DialogTitle>
-            <DialogDescription>
-              Perform common actions for your Action Counsellor system
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <Card>
-              <CardHeader className="pb-4">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Calendar className="w-4 h-4" />
-                  Daily Planning
-                </CardTitle>
-                <CardDescription>
-                  Generate an optimized daily plan using the Action Counsellor's mixing algorithm
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button 
-                  onClick={handlePlanToday}
-                  disabled={isGenerating}
-                  className="w-full"
-                >
-                  {isGenerating ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                      Generating Plan...
-                    </>
-                  ) : (
-                    <>
-                      <Calendar className="w-4 h-4 mr-2" />
-                      Plan Today
-                    </>
-                  )}
-                </Button>
-              </CardContent>
-            </Card>
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Zap className="h-5 w-5" />
+          Quick Actions
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="space-y-2">
+          <label htmlFor="markdown-upload">
+            <Button 
+              variant="outline" 
+              className="w-full justify-start cursor-pointer" 
+              asChild
+              disabled={isImporting}
+            >
+              <span>
+                {isImporting ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Upload className="h-4 w-4 mr-2" />
+                )}
+                {isImporting ? 'Importing...' : 'Import Mindmap (.md)'}
+              </span>
+            </Button>
+          </label>
+          <Input
+            id="markdown-upload"
+            type="file"
+            accept=".md,.markdown"
+            onChange={handleFileUpload}
+            className="hidden"
+          />
+        </div>
 
-            <Card>
-              <CardHeader className="pb-4">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Upload className="w-4 h-4" />
-                  Import Data
-                </CardTitle>
-                <CardDescription>
-                  Import tasks, domains, and goals from your mindmap structure
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button 
-                  onClick={importMindmap}
-                  disabled={isImporting}
-                  className="w-full"
-                >
-                  {isImporting ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                      Importing...
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="w-4 h-4 mr-2" />
-                      Import Mindmap
-                    </>
-                  )}
-                </Button>
-              </CardContent>
-            </Card>
+        <Button 
+          variant="outline" 
+          className="w-full justify-start" 
+          onClick={handleGenerateDayPlan}
+          disabled={isGeneratingPlan}
+        >
+          {isGeneratingPlan ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <Calendar className="h-4 w-4 mr-2" />
+          )}
+          {isGeneratingPlan ? 'Generating...' : "Generate Today's Plan"}
+        </Button>
 
-            <Card>
-              <CardHeader className="pb-4">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Database className="w-4 h-4" />
-                  Data Management
-                </CardTitle>
-                <CardDescription>
-                  Reset your system to start fresh with a new mindmap
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button 
-                  onClick={clearAllData}
-                  variant="destructive"
-                  className="w-full"
-                >
-                  <Database className="w-4 h-4 mr-2" />
-                  Clear All Data
-                </Button>
-              </CardContent>
-            </Card>
+        <div className="pt-2 border-t">
+          <div className="text-xs text-muted-foreground mb-2">Supported formats:</div>
+          <div className="flex gap-1 flex-wrap">
+            <Badge variant="secondary" className="text-xs">
+              <FileText className="h-3 w-3 mr-1" />
+              Markdown
+            </Badge>
           </div>
-        </DialogContent>
-      </Dialog>
-    </div>
+        </div>
+      </CardContent>
+    </Card>
   );
-};
+}
+
+// Helper function to parse markdown content into nodes
+function parseMarkdownToNodes(content: string) {
+  const lines = content.split('\n');
+  const nodes: Array<{ title: string; description?: string; level: number }> = [];
+  
+  let currentDescription = '';
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    
+    // Check for markdown headings
+    const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
+    if (headingMatch) {
+      const level = headingMatch[1].length;
+      const title = headingMatch[2].trim();
+      
+      // Add the previous description if we have one
+      if (currentDescription && nodes.length > 0) {
+        nodes[nodes.length - 1].description = currentDescription.trim();
+      }
+      
+      nodes.push({
+        title,
+        level
+      });
+      
+      currentDescription = '';
+    } else if (line && !line.startsWith('#')) {
+      // Collect description text
+      currentDescription += line + ' ';
+    }
+  }
+  
+  // Add description to the last node if we have one
+  if (currentDescription && nodes.length > 0) {
+    nodes[nodes.length - 1].description = currentDescription.trim();
+  }
+  
+  return { nodes };
+}
+
+// Helper functions to infer category and domain from titles
+function inferCategoryFromTitle(title: string): string {
+  const lower = title.toLowerCase();
+  if (lower.includes('code') || lower.includes('program') || lower.includes('dev')) return 'programming';
+  if (lower.includes('health') || lower.includes('exercise') || lower.includes('fitness')) return 'health';
+  if (lower.includes('money') || lower.includes('finance') || lower.includes('budget')) return 'finance';
+  if (lower.includes('learn') || lower.includes('study') || lower.includes('course')) return 'learning';
+  return 'general';
+}
+
+function inferDomainFromTitle(title: string): string {
+  const lower = title.toLowerCase();
+  if (lower.includes('code') || lower.includes('program') || lower.includes('dev') || lower.includes('tech')) return 'programming';
+  if (lower.includes('health') || lower.includes('fitness') || lower.includes('workout')) return 'health';
+  if (lower.includes('money') || lower.includes('finance') || lower.includes('invest')) return 'finance';
+  if (lower.includes('learn') || lower.includes('study') || lower.includes('skill')) return 'learning';
+  return 'general';
+}

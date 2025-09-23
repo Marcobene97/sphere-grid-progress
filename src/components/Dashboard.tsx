@@ -271,6 +271,7 @@ export const Dashboard = ({
                   onNodeUpdate={onNodeUpdate}
                 />
               </div>
+              {/* Temporarily disable old components for new rebuild
               {selectedNode && (
                 <NodeSidePanel
                   node={selectedNode}
@@ -281,6 +282,7 @@ export const Dashboard = ({
                   onSubtasksUpdate={onSubtasksUpdate || (() => {})}
                 />
               )}
+              */}
             </div>
           )}
         </TabsContent>
@@ -300,7 +302,9 @@ export const Dashboard = ({
         </TabsContent>
       </Tabs>
       
+      {/* Temporarily disable old quick actions
       <QuickActions onPlanToday={() => setActiveTab('daily')} />
+      */}
     </div>
   );
 };

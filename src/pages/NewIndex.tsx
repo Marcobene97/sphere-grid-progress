@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { BrainDumpInput } from '@/components/BrainDumpInput';
 import { SphereGridNew } from '@/components/SphereGridNew';
+import { QuickActions } from '@/components/QuickActions';
+import { NodeSidePanel } from '@/components/NodeSidePanel';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -15,6 +17,7 @@ export default function NewIndex() {
   const [nodes, setNodes] = useState<SphereNode[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedNode, setSelectedNode] = useState<SphereNode | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -96,20 +99,44 @@ export default function NewIndex() {
     }
   };
 
-  const handleGenerateDayPlan = async () => {
+  const handleTaskBreakdown = async (taskId: string) => {
     try {
-      const today = new Date().toISOString().split('T')[0];
-      const result = await aiService.generateDayPlan(today);
-      
+      await aiService.breakdownTask(taskId);
       toast({
-        title: "Day Plan Generated!",
-        description: `Created ${result.slotsCreated} scheduled time slots`
+        title: "Task Broken Down!",
+        description: "Subtasks have been generated"
       });
     } catch (error) {
-      console.error('Error generating day plan:', error);
+      console.error('Error breaking down task:', error);
       toast({
         title: "Error",
-        description: "Failed to generate day plan",
+        description: "Failed to break down task",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleNodeUpdate = async (nodeId: string, updates: Partial<SphereNode>) => {
+    try {
+      const { error } = await supabase
+        .from('nodes')
+        .update({
+          status: updates.status,
+          progress: updates.progress,
+          time_spent: updates.timeSpent,
+        })
+        .eq('id', nodeId);
+
+      if (error) throw error;
+
+      setNodes(prev => prev.map(node => 
+        node.id === nodeId ? { ...node, ...updates } : node
+      ));
+    } catch (error) {
+      console.error('Error updating node:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update node",
         variant: "destructive"
       });
     }
@@ -122,12 +149,16 @@ export default function NewIndex() {
     domain: dbNode.domain,
     goalType: dbNode.goal_type,
     status: dbNode.status,
-    position: { x: dbNode.position_x, y: dbNode.position_y },
+    position: { x: dbNode.position_x || 0, y: dbNode.position_y || 0 },
     prerequisites: dbNode.prerequisites || [],
     unlocks: dbNode.unlocks || [],
     timeSpent: dbNode.time_spent || 0,
     progress: dbNode.progress || 0,
-    metadata: dbNode.metadata || { xp: 0, color: '#22c55e' },
+    metadata: {
+      xp: (dbNode.metadata?.xp || 0),
+      color: (dbNode.metadata?.color || '#22c55e'),
+      ...(dbNode.metadata || {})
+    },
     deadline: dbNode.deadline,
     estTotalMinutes: dbNode.est_total_minutes,
     completedAt: dbNode.completed_at,
@@ -137,18 +168,18 @@ export default function NewIndex() {
   const mapDbTaskToTask = (dbTask: any): Task => ({
     id: dbTask.id,
     title: dbTask.title,
-    description: dbTask.description,
+    description: dbTask.description || '',
     category: dbTask.category,
     difficulty: dbTask.difficulty,
-    priority: dbTask.priority,
-    estimatedTime: dbTask.estimated_time,
+    priority: dbTask.priority || 3,
+    estimatedTime: dbTask.estimated_time || 30,
     actualTime: dbTask.actual_time,
-    xpReward: dbTask.xp_reward,
+    xpReward: dbTask.xp_reward || 25,
     nodeId: dbTask.node_id,
     status: dbTask.status,
-    context: dbTask.context,
-    energy: dbTask.energy,
-    valueScore: dbTask.value_score,
+    context: dbTask.context || 'desk',
+    energy: dbTask.energy || 'medium',
+    valueScore: dbTask.value_score || 3,
     tags: dbTask.tags || [],
     dueDate: dbTask.due_date,
     createdAt: dbTask.created_at,
@@ -186,11 +217,11 @@ export default function NewIndex() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <SphereGridNew 
-                  nodes={nodes}
-                  onNodeClick={(node) => console.log('Node clicked:', node)}
-                  onNodeUpdate={(id, pos) => console.log('Node updated:', id, pos)}
-                />
+              <SphereGridNew 
+                nodes={nodes}
+                onNodeClick={(node) => setSelectedNode(node)}
+                onNodeUpdate={(id, pos) => handleNodeUpdate(id, { position: pos })}
+              />
               </CardContent>
             </Card>
           </div>
@@ -198,24 +229,10 @@ export default function NewIndex() {
           <div className="space-y-6">
             <BrainDumpInput onTasksGenerated={handleTasksGenerated} />
             
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5" />
-                  Quick Actions
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <Button 
-                  variant="outline" 
-                  className="w-full justify-start" 
-                  onClick={handleGenerateDayPlan}
-                >
-                  <Zap className="h-4 w-4 mr-2" />
-                  Generate Today's Plan
-                </Button>
-              </CardContent>
-            </Card>
+            <QuickActions 
+              onTasksGenerated={handleTasksGenerated}
+              onDayPlanGenerated={() => toast({ title: "Day Plan Generated!", description: "Your schedule has been optimized" })}
+            />
 
             <Card>
               <CardHeader>
@@ -240,6 +257,17 @@ export default function NewIndex() {
             </Card>
           </div>
         </div>
+
+        {/* Node Side Panel */}
+        {selectedNode && (
+          <NodeSidePanel
+            node={selectedNode}
+            tasks={tasks}
+            onClose={() => setSelectedNode(null)}
+            onTaskBreakdown={handleTaskBreakdown}
+            onNodeUpdate={handleNodeUpdate}
+          />
+        )}
       </div>
     </div>
   );
