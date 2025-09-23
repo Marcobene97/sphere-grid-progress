@@ -91,11 +91,14 @@ export const FFXSphereGrid: React.FC<FFXSphereGridProps> = ({
     const canvas = new FabricCanvas(canvasRef.current, {
       width: 800,
       height: 600,
-      backgroundColor: 'rgba(10, 10, 35, 0.95)', // Darker background for contrast
-      selection: false
+      backgroundColor: '#0a0a23',
+      selection: false,
+      renderOnAddRemove: true,
+      skipTargetFind: false
     });
 
-    // Set initial viewport to center
+    // Ensure canvas is properly sized and visible
+    canvas.setDimensions({ width: 800, height: 600 });
     canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
     canvas.setZoom(1);
 
@@ -223,19 +226,24 @@ export const FFXSphereGrid: React.FC<FFXSphereGridProps> = ({
 
       // Main node circle
       const circle = new Circle({
-        left: node.position.x - nodeRadius,
-        top: node.position.y - nodeRadius,
+        left: node.position.x,
+        top: node.position.y,
         radius: nodeRadius,
         fill: nodeColor,
         stroke: getNodeBorderColor(node),
-        strokeWidth: 3,
+        strokeWidth: 4,
         selectable: true,
         evented: true,
+        originX: 'center',
+        originY: 'center',
         shadow: new Shadow({
           color: nodeColor,
-          blur: 15,
+          blur: 20,
           offsetX: 0,
-          offsetY: 0
+          offsetY: 0,
+          affectStroke: false,
+          includeDefaultValues: true,
+          nonScaling: false
         })
       });
 
@@ -245,15 +253,17 @@ export const FFXSphereGrid: React.FC<FFXSphereGridProps> = ({
         const progressLength = (circumference * node.progress) / 100;
         
         const progressRing = new Circle({
-          left: node.position.x - (nodeRadius + 6),
-          top: node.position.y - (nodeRadius + 6),
+          left: node.position.x,
+          top: node.position.y,
           radius: nodeRadius + 6,
           fill: 'transparent',
           stroke: '#22c55e',
           strokeWidth: 3,
           strokeDashArray: [progressLength, circumference],
           selectable: false,
-          evented: false
+          evented: false,
+          originX: 'center',
+          originY: 'center'
         });
         fabricCanvas.add(progressRing);
       }
@@ -264,7 +274,7 @@ export const FFXSphereGrid: React.FC<FFXSphereGridProps> = ({
         top: node.position.y + nodeRadius + 15,
         originX: 'center',
         originY: 'top',
-        fontSize: 11,
+        fontSize: 12,
         fill: '#ffffff',
         fontFamily: 'Arial, sans-serif',
         selectable: false,
@@ -273,21 +283,26 @@ export const FFXSphereGrid: React.FC<FFXSphereGridProps> = ({
           color: 'rgba(0,0,0,0.8)',
           blur: 3,
           offsetX: 1,
-          offsetY: 1
+          offsetY: 1,
+          affectStroke: false,
+          includeDefaultValues: true,
+          nonScaling: false
         })
       });
 
       // Status icons
       if (node.status === 'completed') {
         const checkIcon = new Circle({
-          left: node.position.x + nodeRadius - 10,
-          top: node.position.y - nodeRadius - 10,
+          left: node.position.x + nodeRadius - 5,
+          top: node.position.y - nodeRadius - 5,
           radius: 8,
           fill: '#22c55e',
           stroke: '#ffffff',
           strokeWidth: 2,
           selectable: false,
-          evented: false
+          evented: false,
+          originX: 'center',
+          originY: 'center'
         });
         fabricCanvas.add(checkIcon);
       }
