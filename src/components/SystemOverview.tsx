@@ -14,7 +14,7 @@ import {
 
 export const SystemOverview: React.FC = () => {
   return (
-    <Card className="bg-gradient-to-br from-blue-50 to-purple-50 border-blue-200">
+    <Card className="bg-gradient-to-br from-card to-muted border-border">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Brain className="h-5 w-5" />
@@ -28,7 +28,7 @@ export const SystemOverview: React.FC = () => {
       <CardContent className="space-y-6">
         {/* System Components */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white/50 p-4 rounded-lg border">
+          <div className="bg-card/50 backdrop-blur-sm p-4 rounded-lg border-border border">
             <div className="flex items-center gap-2 mb-2">
               <Target className="h-4 w-4 text-blue-600" />
               <span className="font-medium text-sm">FFX Sphere Grid</span>
@@ -38,7 +38,7 @@ export const SystemOverview: React.FC = () => {
             </p>
           </div>
           
-          <div className="bg-white/50 p-4 rounded-lg border">
+          <div className="bg-card/50 backdrop-blur-sm p-4 rounded-lg border-border border">
             <div className="flex items-center gap-2 mb-2">
               <Brain className="h-4 w-4 text-purple-600" />
               <span className="font-medium text-sm">AI Optimization</span>
@@ -48,7 +48,7 @@ export const SystemOverview: React.FC = () => {
             </p>
           </div>
           
-          <div className="bg-white/50 p-4 rounded-lg border">
+          <div className="bg-card/50 backdrop-blur-sm p-4 rounded-lg border-border border">
             <div className="flex items-center gap-2 mb-2">
               <Calendar className="h-4 w-4 text-green-600" />
               <span className="font-medium text-sm">Smart Scheduling</span>
@@ -58,7 +58,7 @@ export const SystemOverview: React.FC = () => {
             </p>
           </div>
           
-          <div className="bg-white/50 p-4 rounded-lg border">
+          <div className="bg-card/50 backdrop-blur-sm p-4 rounded-lg border-border border">
             <div className="flex items-center gap-2 mb-2">
               <TrendingUp className="h-4 w-4 text-orange-600" />
               <span className="font-medium text-sm">Progress Analytics</span>
@@ -97,7 +97,7 @@ export const SystemOverview: React.FC = () => {
         </div>
 
         {/* Controls Guide */}
-        <div className="bg-white/30 p-3 rounded-lg">
+        <div className="bg-muted/50 backdrop-blur-sm p-3 rounded-lg border-border border">
           <h5 className="font-medium text-sm mb-2">Quick Controls</h5>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
             <div>

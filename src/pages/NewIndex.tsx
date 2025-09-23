@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { BrainDumpInput } from '@/components/BrainDumpInput';
 import { SystemOverview } from '@/components/SystemOverview';
 import { ProgressConnector } from '@/components/ProgressConnector';
+import { NodeCreationTest } from '@/components/NodeCreationTest';
 import { UnifiedProgressSystem } from '@/components/UnifiedProgressSystem';
 import { QuickActions } from '@/components/QuickActions';
 import { NodeSidePanel } from '@/components/NodeSidePanel';
@@ -285,6 +286,8 @@ export default function NewIndex() {
               onMindmapSeeded={loadAppData}
             />
             
+            <NodeCreationTest onDataRefresh={loadAppData} />
+
             <ProgressConnector 
               nodes={nodes}
               tasks={tasks}

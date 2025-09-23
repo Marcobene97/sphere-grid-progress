@@ -152,16 +152,21 @@ export const FFXSphereGrid: React.FC<FFXSphereGridProps> = ({
 
   // Update grid when nodes change
   useEffect(() => {
+    console.log('FFX Grid: Nodes updated:', nodes.length);
     const enhancedNodes = generateFFXLayout(nodes);
+    console.log('FFX Grid: Enhanced nodes:', enhancedNodes.length);
     setGridNodes(enhancedNodes);
   }, [nodes, generateFFXLayout]);
 
   // Render nodes and connections on canvas
   useEffect(() => {
+    console.log('FFX Grid: Rendering nodes on canvas:', fabricCanvas ? 'Canvas ready' : 'No canvas', gridNodes.length, 'nodes');
     if (!fabricCanvas || gridNodes.length === 0) return;
 
     fabricCanvas.clear();
     fabricCanvas.backgroundColor = '#0a0a23';
+    
+    console.log('FFX Grid: Starting to render', gridNodes.length, 'nodes');
 
     // First pass: Draw connections (lines behind nodes)
     gridNodes.forEach((node) => {
@@ -187,6 +192,7 @@ export const FFXSphereGrid: React.FC<FFXSphereGridProps> = ({
 
     // Second pass: Draw nodes
     gridNodes.forEach((node) => {
+      console.log('FFX Grid: Rendering node:', node.title, 'at position:', node.position);
       const nodeColor = getNodeColor(node);
       const nodeRadius = getNodeRadius(node);
 
@@ -286,6 +292,7 @@ export const FFXSphereGrid: React.FC<FFXSphereGridProps> = ({
       node.fabricObject = circle;
     });
 
+    console.log('FFX Grid: Finished rendering. Canvas objects:', fabricCanvas.getObjects().length);
     fabricCanvas.renderAll();
   }, [fabricCanvas, gridNodes, onNodeClick]);
 
@@ -379,6 +386,24 @@ export const FFXSphereGrid: React.FC<FFXSphereGridProps> = ({
             ref={canvasRef} 
             className="border border-gray-700 rounded-lg bg-gradient-to-br from-slate-900 to-slate-800"
           />
+          
+          {/* Debug Info */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="absolute top-2 right-2 bg-black/80 text-white p-2 rounded text-xs">
+              Canvas: {fabricCanvas ? '✓' : '✗'} | Nodes: {gridNodes.length} | Objects: {fabricCanvas?.getObjects().length || 0}
+            </div>
+          )}
+          
+          {/* Empty State */}
+          {gridNodes.length === 0 && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg">
+              <div className="text-center text-white">
+                <Target className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p className="text-lg font-medium">No nodes to display</p>
+                <p className="text-sm opacity-75">Create tasks and nodes using the Brain Dump feature</p>
+              </div>
+            </div>
+          )}
           
           {selectedNode && (
             <div className="absolute top-2 left-2 bg-black/80 backdrop-blur-sm rounded-lg p-3 text-white max-w-xs">

@@ -57,7 +57,7 @@ export const ProgressConnector: React.FC<ProgressConnectorProps> = ({ nodes, tas
   };
 
   return (
-    <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
+    <Card className="bg-gradient-to-r from-card to-muted border-border">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <TrendingUp className="h-5 w-5" />
@@ -69,8 +69,8 @@ export const ProgressConnector: React.FC<ProgressConnectorProps> = ({ nodes, tas
         {/* Progress Flow Chain */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
-            <div className="bg-blue-100 p-2 rounded-full">
-              <Clock className="h-4 w-4 text-blue-600" />
+            <div className="bg-primary/20 p-2 rounded-full">
+              <Clock className="h-4 w-4 text-primary" />
             </div>
             <div className="text-center">
               <div className="text-lg font-bold">{progressFlow.tasksCompleted}</div>
@@ -81,8 +81,8 @@ export const ProgressConnector: React.FC<ProgressConnectorProps> = ({ nodes, tas
           <ArrowRight className="h-4 w-4 text-muted-foreground" />
           
           <div className="flex items-center gap-2">
-            <div className="bg-green-100 p-2 rounded-full">
-              <Zap className="h-4 w-4 text-green-600" />
+            <div className="bg-green-500/20 p-2 rounded-full">
+              <Zap className="h-4 w-4 text-green-500" />
             </div>
             <div className="text-center">
               <div className="text-lg font-bold">{progressFlow.xpEarned}</div>
@@ -93,8 +93,8 @@ export const ProgressConnector: React.FC<ProgressConnectorProps> = ({ nodes, tas
           <ArrowRight className="h-4 w-4 text-muted-foreground" />
           
           <div className="flex items-center gap-2">
-            <div className="bg-purple-100 p-2 rounded-full">
-              <Target className="h-4 w-4 text-purple-600" />
+            <div className="bg-purple-500/20 p-2 rounded-full">
+              <Target className="h-4 w-4 text-purple-500" />
             </div>
             <div className="text-center">
               <div className="text-lg font-bold">{progressFlow.nodesAdvanced}</div>
@@ -105,8 +105,8 @@ export const ProgressConnector: React.FC<ProgressConnectorProps> = ({ nodes, tas
           <ArrowRight className="h-4 w-4 text-muted-foreground" />
           
           <div className="flex items-center gap-2">
-            <div className="bg-orange-100 p-2 rounded-full">
-              <CheckCircle2 className="h-4 w-4 text-orange-600" />
+            <div className="bg-orange-500/20 p-2 rounded-full">
+              <CheckCircle2 className="h-4 w-4 text-orange-500" />
             </div>
             <div className="text-center">
               <div className="text-lg font-bold">{progressFlow.pathsUnlocked}</div>
@@ -135,7 +135,7 @@ export const ProgressConnector: React.FC<ProgressConnectorProps> = ({ nodes, tas
         </div>
 
         {/* Connection Status */}
-        <div className="mt-4 p-3 bg-white/50 rounded-lg">
+        <div className="mt-4 p-3 bg-card/80 backdrop-blur-sm rounded-lg border-border border">
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">System Integration Status</span>
             <div className="flex items-center gap-2">
