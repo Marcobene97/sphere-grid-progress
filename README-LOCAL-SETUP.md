@@ -19,7 +19,23 @@
    ```
 
 3. **Environment Setup:**
-   The project uses hardcoded Supabase configuration for Lovable. No additional `.env` setup is required.
+   
+   **IMPORTANT for Brain Dump Feature:** The AI-powered brain dump requires Supabase Edge Functions. You have two options:
+   
+   **Option A: Use Deployed Functions (Recommended)**
+   ```bash
+   # Copy and use the provided .env file pointing to deployed functions
+   cp .env .env.local
+   ```
+   The existing `.env` file is already configured to use the deployed Supabase instance with working edge functions.
+   
+   **Option B: Local Supabase (Advanced)**
+   If you want to run everything locally:
+   ```bash
+   supabase start
+   supabase functions serve
+   # Then update your local env to point to local instance
+   ```
 
 4. **Start the development server:**
    ```bash
@@ -62,11 +78,16 @@
    - Ensure canvas is properly initialized
    - Verify node data is loaded correctly
 
-2. **Authentication errors:**
+2. **Brain Dump not working:**
+   - Ensure you're using the deployed Supabase instance (check .env file)
+   - Brain dump requires edge functions that only exist in deployed environment
+   - Check browser network tab for failed function calls
+
+3. **Authentication errors:**
    - The app uses anonymous authentication automatically
    - Check network connectivity to Supabase
 
-3. **Build errors:**
+4. **Build errors:**
    - Clear node_modules and reinstall: `rm -rf node_modules package-lock.json && npm install`
    - Check TypeScript errors: `npm run lint`
 
