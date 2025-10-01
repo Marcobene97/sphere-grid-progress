@@ -39,7 +39,7 @@ export default defineConfig(({ mode }) => ({
     minify: 'esbuild'
   },
   optimizeDeps: {
-    include: ['sonner'],
+    // keep server-only SDKs out of the prebundle if you add them later
     exclude: ['openai'],
   },
 }));
