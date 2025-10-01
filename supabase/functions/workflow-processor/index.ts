@@ -178,8 +178,8 @@ OUTPUT FORMAT (JSON):
   "reasoning": "Overall analysis and estimation strategy"
 }`;
 
-    // Call OpenAI with reasoning model for best results
-    console.log('[WorkflowProcessor] Calling OpenAI o3 reasoning model...');
+    // Call OpenAI GPT-4o (reliable and fast)
+    console.log('[WorkflowProcessor] Calling OpenAI GPT-4o...');
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -187,33 +187,64 @@ OUTPUT FORMAT (JSON):
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'o3-2025-04-16', // Advanced reasoning model
+        model: 'gpt-4o',
         messages: [
           { 
             role: 'system', 
-            content: 'You are an expert productivity system with deep reasoning capabilities. Analyze workflows methodically and provide realistic, data-driven estimates. Always respond with valid JSON.' 
+            content: 'You are an expert productivity system. Analyze workflows methodically and provide realistic, data-driven estimates. Always respond with valid, complete JSON. Be concise but thorough.' 
           },
           { role: 'user', content: prompt }
         ],
-        max_completion_tokens: 8000,
+        max_tokens: 16000,
+        temperature: 0.7,
+        response_format: { type: "json_object" }
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('[WorkflowProcessor] OpenAI error:', errorText);
-      throw new Error(`OpenAI API error: ${response.status} ${errorText}`);
+      console.error('[WorkflowProcessor] OpenAI error:', response.status, errorText);
+      throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
     }
 
     const aiData = await response.json();
-    console.log('[WorkflowProcessor] OpenAI response received');
+    console.log('[WorkflowProcessor] OpenAI response received, length:', JSON.stringify(aiData).length);
 
-    // Parse response
-    let content = aiData.choices[0].message.content;
-    if (content.startsWith('```json')) {
-      content = content.replace(/^```json\n?/, '').replace(/\n?```$/, '');
+    // Validate response structure
+    if (!aiData.choices || !aiData.choices[0] || !aiData.choices[0].message) {
+      console.error('[WorkflowProcessor] Invalid OpenAI response structure:', aiData);
+      throw new Error('Invalid OpenAI response structure');
     }
-    const analysis = JSON.parse(content);
+
+    // Parse response with enhanced validation
+    let content = aiData.choices[0].message.content;
+    console.log('[WorkflowProcessor] Raw content length:', content.length);
+    
+    // Clean markdown code blocks if present
+    if (content.includes('```')) {
+      content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    }
+    
+    // Validate JSON before parsing
+    if (!content || content.length < 10) {
+      console.error('[WorkflowProcessor] Content too short:', content);
+      throw new Error('OpenAI response content is too short or empty');
+    }
+
+    let analysis;
+    try {
+      analysis = JSON.parse(content);
+    } catch (parseError) {
+      console.error('[WorkflowProcessor] JSON parse error:', parseError);
+      console.error('[WorkflowProcessor] Failed content (first 500 chars):', content.substring(0, 500));
+      throw new Error(`Failed to parse OpenAI response: ${parseError.message}`);
+    }
+
+    // Validate analysis structure
+    if (!analysis.workflow || !analysis.nodes || !analysis.tasks) {
+      console.error('[WorkflowProcessor] Missing required fields in analysis:', Object.keys(analysis));
+      throw new Error('OpenAI response missing required fields (workflow, nodes, tasks)');
+    }
 
     console.log('[WorkflowProcessor] Parsed analysis:', {
       nodes: analysis.nodes?.length || 0,
