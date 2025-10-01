@@ -88,71 +88,86 @@ export const FFXSphereGrid: React.FC<FFXSphereGridProps> = ({
   useEffect(() => {
     if (!canvasRef.current) return;
 
-    const canvas = new FabricCanvas(canvasRef.current, {
-      width: 800,
-      height: 600,
-      backgroundColor: '#0a0a23',
-      selection: false,
-      renderOnAddRemove: true,
-      skipTargetFind: false
-    });
+    try {
+      const canvas = new FabricCanvas(canvasRef.current, {
+        width: 800,
+        height: 600,
+        backgroundColor: '#0a0a23',
+        selection: false,
+        renderOnAddRemove: true,
+        skipTargetFind: false
+      });
 
-    // Ensure canvas is properly sized and visible
-    canvas.setDimensions({ width: 800, height: 600 });
-    canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
-    canvas.setZoom(1);
+      // Ensure canvas is properly sized and visible
+      canvas.setDimensions({ width: 800, height: 600 });
+      canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
+      canvas.setZoom(1);
 
-    // Enable zooming and panning
-    canvas.on('mouse:wheel', (opt) => {
-      const delta = opt.e.deltaY;
-      let zoom = canvas.getZoom();
-      zoom *= 0.999 ** delta;
-      if (zoom > 3) zoom = 3;
-      if (zoom < 0.5) zoom = 0.5;
-      canvas.zoomToPoint(new Point(opt.e.offsetX, opt.e.offsetY), zoom);
-      setZoomLevel(zoom);
-      opt.e.preventDefault();
-      opt.e.stopPropagation();
-    });
-
-    // Pan with alt + drag
-    let isDragging = false;
-    let lastPosX = 0;
-    let lastPosY = 0;
-
-    canvas.on('mouse:down', (opt) => {
-      const evt = opt.e as MouseEvent;
-      if (evt.altKey) { 
-        isDragging = true;
-        canvas.selection = false;
-        lastPosX = evt.clientX;
-        lastPosY = evt.clientY;
+      // Verify canvas context is ready
+      const ctx = canvas.getContext();
+      if (!ctx) {
+        console.error('FFX Grid: Failed to get canvas context');
+        return;
       }
-    });
 
-    canvas.on('mouse:move', (opt) => {
-      if (isDragging) {
+      // Enable zooming and panning
+      canvas.on('mouse:wheel', (opt) => {
+        const delta = opt.e.deltaY;
+        let zoom = canvas.getZoom();
+        zoom *= 0.999 ** delta;
+        if (zoom > 3) zoom = 3;
+        if (zoom < 0.5) zoom = 0.5;
+        canvas.zoomToPoint(new Point(opt.e.offsetX, opt.e.offsetY), zoom);
+        setZoomLevel(zoom);
+        opt.e.preventDefault();
+        opt.e.stopPropagation();
+      });
+
+      // Pan with alt + drag
+      let isDragging = false;
+      let lastPosX = 0;
+      let lastPosY = 0;
+
+      canvas.on('mouse:down', (opt) => {
         const evt = opt.e as MouseEvent;
-        const vpt = canvas.viewportTransform!;
-        vpt[4] += evt.clientX - lastPosX;
-        vpt[5] += evt.clientY - lastPosY;
-        canvas.requestRenderAll();
-        lastPosX = evt.clientX;
-        lastPosY = evt.clientY;
-      }
-    });
+        if (evt.altKey) { 
+          isDragging = true;
+          canvas.selection = false;
+          lastPosX = evt.clientX;
+          lastPosY = evt.clientY;
+        }
+      });
 
-    canvas.on('mouse:up', () => {
-      isDragging = false;
-      canvas.selection = true;
-    });
+      canvas.on('mouse:move', (opt) => {
+        if (isDragging) {
+          const evt = opt.e as MouseEvent;
+          const vpt = canvas.viewportTransform!;
+          vpt[4] += evt.clientX - lastPosX;
+          vpt[5] += evt.clientY - lastPosY;
+          canvas.requestRenderAll();
+          lastPosX = evt.clientX;
+          lastPosY = evt.clientY;
+        }
+      });
 
-    console.log('FFX Grid: Canvas initialized with dimensions:', canvas.width, 'x', canvas.height);
-    setFabricCanvas(canvas);
+      canvas.on('mouse:up', () => {
+        isDragging = false;
+        canvas.selection = true;
+      });
 
-    return () => {
-      canvas.dispose();
-    };
+      console.log('FFX Grid: Canvas initialized successfully with dimensions:', canvas.width, 'x', canvas.height);
+      setFabricCanvas(canvas);
+
+      return () => {
+        try {
+          canvas.dispose();
+        } catch (error) {
+          console.error('FFX Grid: Error disposing canvas:', error);
+        }
+      };
+    } catch (error) {
+      console.error('FFX Grid: Error initializing canvas:', error);
+    }
   }, []);
 
   // Update grid when nodes change
@@ -182,17 +197,25 @@ export const FFXSphereGrid: React.FC<FFXSphereGridProps> = ({
       console.log('FFX Grid: Canvas not ready yet');
       return;
     }
-    
-    if (gridNodes.length === 0) {
-      console.log('FFX Grid: No nodes to render');
-      fabricCanvas.clear();
-      fabricCanvas.renderAll();
+
+    // Safely clear canvas with context check
+    try {
+      // Remove all objects instead of calling clear() to avoid context issues
+      const objects = fabricCanvas.getObjects();
+      objects.forEach(obj => fabricCanvas.remove(obj));
+      
+      if (gridNodes.length === 0) {
+        console.log('FFX Grid: No nodes to render');
+        fabricCanvas.renderAll();
+        return;
+      }
+
+      console.log('FFX Grid: Clearing canvas and starting render...');
+      fabricCanvas.backgroundColor = 'rgba(10, 10, 35, 0.95)';
+    } catch (error) {
+      console.error('FFX Grid: Error clearing canvas:', error);
       return;
     }
-
-    console.log('FFX Grid: Clearing canvas and starting render...');
-    fabricCanvas.clear();
-    fabricCanvas.backgroundColor = 'rgba(10, 10, 35, 0.95)';
     
     // First pass: Draw connections (lines behind nodes)
     gridNodes.forEach((node, nodeIndex) => {
