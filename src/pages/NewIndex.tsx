@@ -49,18 +49,38 @@ export default function NewIndex() {
 
   const loadAppData = async () => {
     try {
-      console.log('Loading app data...');
-      const { data: nodesData } = await supabase.from('nodes').select('*');
-      const { data: tasksData } = await supabase.from('tasks').select('*');
+      console.log('[NewIndex] Loading app data...');
+      const { data: nodesData, error: nodesError } = await supabase.from('nodes').select('*');
+      const { data: tasksData, error: tasksError } = await supabase.from('tasks').select('*');
       
-      console.log('Raw data loaded:', { nodes: nodesData?.length || 0, tasks: tasksData?.length || 0 });
+      if (nodesError) {
+        console.error('[NewIndex] Error loading nodes:', nodesError);
+        throw nodesError;
+      }
+      if (tasksError) {
+        console.error('[NewIndex] Error loading tasks:', tasksError);
+        throw tasksError;
+      }
       
-      setNodes(nodesData?.map(mapDbNodeToSphereNode) || []);
-      setTasks(tasksData?.map(mapDbTaskToTask) || []);
+      console.log('[NewIndex] Raw data loaded:', { 
+        nodes: nodesData?.length || 0, 
+        tasks: tasksData?.length || 0,
+        sampleNode: nodesData?.[0]
+      });
       
-      console.log('Data processed and set in state');
+      const mappedNodes = nodesData?.map(mapDbNodeToSphereNode) || [];
+      const mappedTasks = tasksData?.map(mapDbTaskToTask) || [];
+      
+      setNodes(mappedNodes);
+      setTasks(mappedTasks);
+      
+      console.log('[NewIndex] Data processed and set in state:', {
+        nodes: mappedNodes.length,
+        tasks: mappedTasks.length,
+        sampleMappedNode: mappedNodes[0]
+      });
     } catch (error) {
-      console.error('Error loading data:', error);
+      console.error('[NewIndex] Error loading data:', error);
       toast({
         title: "Data Loading Error",
         description: "Failed to load app data",
@@ -193,16 +213,16 @@ export default function NewIndex() {
 
   const mapDbNodeToSphereNode = (dbNode: any): SphereNode => ({
     id: dbNode.id,
-    title: dbNode.title,
+    title: dbNode.title || 'Untitled Node',
     description: dbNode.description || '',
-    domain: dbNode.domain,
-    goalType: dbNode.goal_type,
-    status: dbNode.status,
-    position: { x: dbNode.position_x || 0, y: dbNode.position_y || 0 },
+    domain: dbNode.domain || 'general',
+    goalType: dbNode.goal_type || 'project',
+    status: dbNode.status || 'available',
+    position: { x: dbNode.position_x ?? 400, y: dbNode.position_y ?? 300 },
     prerequisites: dbNode.prerequisites || [],
     unlocks: dbNode.unlocks || [],
     timeSpent: dbNode.time_spent || 0,
-    progress: dbNode.progress || 0,
+    progress: Math.min(100, Math.max(0, dbNode.progress || 0)),
     metadata: {
       xp: (dbNode.metadata?.xp || 0),
       color: (dbNode.metadata?.color || '#22c55e'),

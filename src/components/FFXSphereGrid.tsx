@@ -41,8 +41,8 @@ export const FFXSphereGrid: React.FC<FFXSphereGridProps> = ({
   const generateFFXLayout = useCallback((nodeList: SphereNode[]): GridNode[] => {
     const centerX = 400; // Canvas center
     const centerY = 300; // Canvas center
-    const baseRadius = 80; // Smaller base radius
-    const spacing = 40; // Spacing between nodes
+    const baseRadius = 120; // Increased base radius for better spacing
+    const spacing = 60; // Increased spacing between rings
     
     console.log('FFX Grid: Generating layout for', nodeList.length, 'nodes');
     
@@ -54,25 +54,33 @@ export const FFXSphereGrid: React.FC<FFXSphereGridProps> = ({
         x = centerX;
         y = centerY;
       } else {
-        // Circular/spiral pattern for better visibility
-        const angleStep = (2 * Math.PI) / Math.max(6, nodeList.length - 1);
-        const ring = Math.floor((index - 1) / 6) + 1;
-        const posInRing = (index - 1) % 6;
-        const angle = posInRing * angleStep;
+        // Circular/spiral pattern with better spacing
+        const nodesPerRing = 6;
+        const ring = Math.floor((index - 1) / nodesPerRing) + 1;
+        const posInRing = (index - 1) % nodesPerRing;
+        const angleStep = (2 * Math.PI) / nodesPerRing;
+        const angle = posInRing * angleStep + (ring * 0.5); // Add offset per ring for better distribution
         const radius = baseRadius + (ring - 1) * spacing;
         
         x = centerX + Math.cos(angle) * radius;
         y = centerY + Math.sin(angle) * radius;
       }
       
-      // Create smart connections based on domain similarity
-      connections = nodeList
-        .filter((otherNode, otherIndex) => {
-          if (otherIndex === index) return false;
-          return otherNode.domain === node.domain && Math.random() > 0.5;
-        })
-        .slice(0, 2) // Max 2 connections per node
-        .map(connectedNode => connectedNode.id);
+      // Create smart connections: connect to center node and similar domain nodes
+      connections = [];
+      if (index > 0) {
+        connections.push(nodeList[0].id); // Always connect to center
+      }
+      
+      // Add one connection to similar domain node
+      const similarNode = nodeList.find((otherNode, otherIndex) => 
+        otherIndex !== index && 
+        otherIndex !== 0 && 
+        otherNode.domain === node.domain
+      );
+      if (similarNode) {
+        connections.push(similarNode.id);
+      }
       
       console.log(`FFX Grid: Node ${node.title} positioned at (${x.toFixed(0)}, ${y.toFixed(0)})`);
       
