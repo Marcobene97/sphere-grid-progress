@@ -377,10 +377,10 @@ export const FFXSphereGrid: React.FC<FFXSphereGridProps> = ({
   };
 
   const getNodeRadius = (node: GridNode): number => {
-    const baseRadius = 15;
-    if (node.goalType === 'project') return baseRadius + 8;
-    if (node.goalType === 'habit') return baseRadius + 5;
-    return baseRadius;
+    const baseRadius = 40; // Increased from 15 to 40 for better visibility
+    if (node.goalType === 'project') return baseRadius + 15; // Projects are larger
+    if (node.goalType === 'habit') return baseRadius + 10; // Habits medium
+    return baseRadius; // One-off tasks base size
   };
 
   const getConnectionColor = (node1: GridNode, node2: GridNode): string => {
