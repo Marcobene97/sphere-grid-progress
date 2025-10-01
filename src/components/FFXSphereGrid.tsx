@@ -463,10 +463,12 @@ export const FFXSphereGrid: React.FC<FFXSphereGridProps> = ({
       </CardHeader>
       
       <CardContent>
-        <div className="relative">
+        <div className="relative w-full">
           <canvas 
-            ref={canvasRef} 
-            className="border border-gray-700 rounded-lg bg-gradient-to-br from-slate-900 to-slate-800"
+            ref={canvasRef}
+            width={800}
+            height={600}
+            className="border border-gray-700 rounded-lg bg-gradient-to-br from-slate-900 to-slate-800 w-full max-w-full"
           />
           
           {/* Debug Info - Always show in development */}
