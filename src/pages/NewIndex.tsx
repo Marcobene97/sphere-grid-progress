@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { BrainDumpInput } from '@/components/BrainDumpInput';
+import { WorkflowProcessor } from '@/components/WorkflowProcessor';
 import { SystemOverview } from '@/components/SystemOverview';
 import { ProgressConnector } from '@/components/ProgressConnector';
 import { NodeCreationTest } from '@/components/NodeCreationTest';
@@ -323,32 +324,38 @@ export default function NewIndex() {
           </TabsContent>
 
           <TabsContent value="braindump">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <BrainDumpInput onTasksGenerated={handleTasksGenerated} />
-              <div className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Quick Stats</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span>Nodes:</span>
-                        <Badge>{nodes.length}</Badge>
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 gap-6">
+                <WorkflowProcessor onWorkflowProcessed={loadAppData} />
+              </div>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <BrainDumpInput onTasksGenerated={handleTasksGenerated} />
+                <div className="space-y-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Quick Stats</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span>Nodes:</span>
+                          <Badge>{nodes.length}</Badge>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Tasks:</span>
+                          <Badge>{tasks.length}</Badge>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Completed:</span>
+                          <Badge variant="outline">
+                            {tasks.filter(t => t.status === 'completed').length}
+                          </Badge>
+                        </div>
                       </div>
-                      <div className="flex justify-between">
-                        <span>Tasks:</span>
-                        <Badge>{tasks.length}</Badge>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Completed:</span>
-                        <Badge variant="outline">
-                          {tasks.filter(t => t.status === 'completed').length}
-                        </Badge>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+                </div>
               </div>
             </div>
           </TabsContent>

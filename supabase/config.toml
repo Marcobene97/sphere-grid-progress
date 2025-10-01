@@ -1,1 +1,13 @@
 project_id = "bujbbvcexwscnhgrcezn"
+
+[functions.action-counsellor]
+verify_jwt = true
+
+[functions.task-generator]
+verify_jwt = true
+
+[functions.scheduler]
+verify_jwt = true
+
+[functions.workflow-processor]
+verify_jwt = true
