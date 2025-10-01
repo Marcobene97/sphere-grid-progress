@@ -287,9 +287,11 @@ export default function NewIndex() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <Brain className="h-8 w-8 animate-pulse mx-auto mb-4" />
-          <p>Loading Sphere Grid...</p>
+        <div className="text-center space-y-4">
+          <Brain className="h-12 w-12 text-primary animate-pulse mx-auto mb-4" />
+          <p className="text-xl text-foreground font-semibold">Loading Sphere Grid...</p>
+          <p className="text-sm text-muted-foreground">Initializing your progress system</p>
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mt-4"></div>
         </div>
       </div>
     );
@@ -299,6 +301,25 @@ export default function NewIndex() {
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-7xl mx-auto space-y-6">
         <SystemOverview />
+        
+        {/* Empty state when no data */}
+        {nodes.length === 0 && tasks.length === 0 && (
+          <Card className="border-primary/20 bg-card">
+            <CardContent className="p-8 text-center space-y-4">
+              <Target className="h-16 w-16 text-primary mx-auto opacity-50" />
+              <h2 className="text-2xl font-bold text-foreground">Welcome to Your Sphere Grid</h2>
+              <p className="text-muted-foreground max-w-md mx-auto">
+                Get started by creating test data or using the Brain Dump feature to generate your personalized skill tree.
+              </p>
+              <div className="flex gap-3 justify-center pt-4">
+                <Button onClick={loadAppData} variant="outline">
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Refresh Data
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
         
         <Tabs defaultValue="system" className="w-full">
           <TabsList className="grid w-full grid-cols-4">
