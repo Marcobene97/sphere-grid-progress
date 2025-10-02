@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Sparkles, Loader2, Calendar } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 export const AIDailyPlanner: React.FC = () => {
@@ -14,13 +15,16 @@ export const AIDailyPlanner: React.FC = () => {
     setPlan('');
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+
       const response = await fetch(
         `https://bujbbvcexwscnhgrcezn.supabase.co/functions/v1/ai-daily-plan`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`
+            'Authorization': `Bearer ${session.access_token}`
           }
         }
       );

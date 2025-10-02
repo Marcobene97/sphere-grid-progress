@@ -62,10 +62,10 @@ export const XPSystemDisplay: React.FC = () => {
       const { data: xpResult } = await supabase.rpc('get_user_total_xp');
       const totalXP = xpResult || 0;
 
-      // Calculate level (exponential: level 1 = 100 XP, level 2 = 200 XP, level 3 = 400 XP...)
-      const level = Math.floor(Math.log2(totalXP / 50 + 1)) + 1;
-      const xpForCurrentLevel = Math.pow(2, level - 1) * 50;
-      const xpForNextLevel = Math.pow(2, level) * 50;
+      // Calculate level (simple: 100 XP per level)
+      const level = Math.floor(totalXP / 100) + 1;
+      const xpForCurrentLevel = (level - 1) * 100;
+      const xpForNextLevel = level * 100;
       const currentLevelXP = totalXP - xpForCurrentLevel;
 
       // Get streak from profile

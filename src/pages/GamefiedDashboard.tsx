@@ -193,16 +193,41 @@ export default function GamefiedDashboard() {
 
     setProcessing(true);
     try {
-      const lines = brainDumpText.split('\n').filter(line => line.trim());
+      // Parse lines and filter out markdown headers and empty lines
+      const lines = brainDumpText
+        .split('\n')
+        .map(line => line.trim())
+        .filter(line => {
+          // Skip empty lines, markdown headers, and list markers without content
+          if (!line) return false;
+          if (line.startsWith('#')) return false;
+          if (line === '-') return false;
+          // Remove list markers
+          return true;
+        })
+        .map(line => {
+          // Clean up list markers
+          return line.replace(/^[-*]\s*/, '').trim();
+        })
+        .filter(line => line.length > 0);
       
+      if (lines.length === 0) {
+        toast({
+          title: "No tasks found",
+          description: "Please enter some task descriptions",
+          variant: "destructive"
+        });
+        return;
+      }
+
       const tasksToCreate = lines.map(line => ({
-        title: line.trim(),
+        title: line,
         status: 'pending' as const,
         priority: 3,
         category: 'general' as const,
         difficulty: 'basic' as const,
         estimated_time: 30,
-        xp_reward: 15 // Default XP
+        xp_reward: 15
       }));
 
       const { error } = await supabase.from('tasks').insert(tasksToCreate);
