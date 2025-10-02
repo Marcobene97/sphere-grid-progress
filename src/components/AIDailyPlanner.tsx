@@ -29,7 +29,10 @@ export const AIDailyPlanner: React.FC = () => {
         }
       );
 
-      if (!response.ok) throw new Error('Failed to generate plan');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to generate plan');
+      }
 
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
@@ -68,8 +71,8 @@ export const AIDailyPlanner: React.FC = () => {
     } catch (error) {
       console.error('Error generating plan:', error);
       toast({
-        title: "Error",
-        description: "Failed to generate daily plan",
+        title: "AI Credits Required",
+        description: error instanceof Error ? error.message : "Failed to generate daily plan. Please add credits to your Lovable workspace.",
         variant: "destructive"
       });
     } finally {

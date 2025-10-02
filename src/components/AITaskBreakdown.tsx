@@ -48,7 +48,10 @@ export const AITaskBreakdown: React.FC<AITaskBreakdownProps> = ({
         }
       );
 
-      if (!response.ok) throw new Error('Failed to get AI breakdown');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to get AI breakdown');
+      }
 
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
@@ -108,8 +111,8 @@ export const AITaskBreakdown: React.FC<AITaskBreakdownProps> = ({
     } catch (error) {
       console.error('Error breaking down task:', error);
       toast({
-        title: "Error",
-        description: "Failed to break down task. Please try again.",
+        title: "AI Credits Required",
+        description: error instanceof Error ? error.message : "Failed to break down task. Please add credits to your Lovable workspace.",
         variant: "destructive"
       });
     } finally {
