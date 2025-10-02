@@ -11,3 +11,9 @@ verify_jwt = true
 
 [functions.workflow-processor]
 verify_jwt = true
+
+[functions.ai-task-breakdown]
+verify_jwt = false
+
+[functions.ai-daily-plan]
+verify_jwt = true

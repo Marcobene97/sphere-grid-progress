@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import SimpleDashboard from "./pages/SimpleDashboard";
+import GamefiedDashboard from "./pages/GamefiedDashboard";
 import NotFound from "./pages/NotFound";
 import { ensureSession } from '@/lib/ensureSession';
 
@@ -75,7 +75,7 @@ const App = () => {
         <Toaster />
         <BrowserRouter>
             <Routes>
-              <Route path="/" element={<SimpleDashboard />} />
+              <Route path="/" element={<GamefiedDashboard />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
