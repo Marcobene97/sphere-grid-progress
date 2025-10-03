@@ -31,19 +31,32 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are an expert productivity coach. Break down tasks into actionable subtasks.
-            Return ONLY a JSON array of subtasks with this exact format:
-            [{"title": "Subtask name", "estimatedMinutes": 25, "xpReward": 10}]
-            
-            XP Rewards guide:
-            - Simple tasks (5-15 min): 5-10 XP
-            - Medium tasks (15-30 min): 15-25 XP  
-            - Complex tasks (30-60 min): 30-50 XP
-            - Major tasks (60+ min): 50-100 XP`,
+            content: `You are an expert productivity coach. Break down tasks into small, actionable subtasks.
+
+RULES:
+- Create 3-8 subtasks (not too many, not too few)
+- Each subtask should be specific and actionable
+- Start subtasks with action verbs (Research, Draft, Review, etc.)
+- Estimate realistic time for each (5-60 minutes)
+- Award XP based on complexity and time
+
+XP FORMULA:
+- Quick tasks (5-15 min): 10-15 XP
+- Standard tasks (15-30 min): 20-30 XP  
+- Complex tasks (30-45 min): 40-50 XP
+- Major tasks (45-60 min): 60-80 XP
+
+Return ONLY a valid JSON array with this EXACT format:
+[
+  {"title": "Research project requirements", "estimatedMinutes": 20, "xpReward": 25},
+  {"title": "Create outline", "estimatedMinutes": 15, "xpReward": 20}
+]
+
+No markdown, no extra text, ONLY the JSON array.`,
           },
           {
             role: "user",
-            content: `Break down this task:\nTitle: ${taskTitle}\n${taskDescription ? `Description: ${taskDescription}` : ""}`,
+            content: `Break down this task into subtasks:\n\nTitle: ${taskTitle}\n${taskDescription ? `Description: ${taskDescription}` : "No additional description provided."}`,
           },
         ],
         stream: true,

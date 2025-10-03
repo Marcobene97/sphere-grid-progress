@@ -49,14 +49,39 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are a productivity expert creating an optimal daily schedule.
-            Analyze the tasks and create a time-blocked schedule.
-            Consider: energy levels (morning = focus work, afternoon = meetings, evening = light work)
-            Return a motivating plan with emoji and time blocks.`,
+            content: `You are an AI productivity scheduler. Create a specific time-blocked daily schedule.
+
+REQUIREMENTS:
+- Start day at 9:00 AM, end at 6:00 PM (adjust if tasks require more time)
+- Each task gets a specific time slot (e.g., "9:00 AM - 10:30 AM")
+- Include 15-min breaks between tasks
+- Group similar tasks together
+- Put high-focus work in morning (9 AM - 12 PM)
+- Schedule lighter tasks in afternoon (2 PM - 6 PM)
+- Add 1-hour lunch break (12:00 PM - 1:00 PM)
+
+FORMAT YOUR RESPONSE EXACTLY LIKE THIS:
+
+🌅 Morning Block (9:00 AM - 12:00 PM)
+• 9:00 AM - 10:30 AM: [Task Name] (90 min)
+• 10:45 AM - 12:00 PM: [Task Name] (75 min)
+
+🍽️ Lunch Break (12:00 PM - 1:00 PM)
+
+☀️ Afternoon Block (1:00 PM - 6:00 PM)
+• 1:00 PM - 2:30 PM: [Task Name] (90 min)
+• 2:45 PM - 4:00 PM: [Task Name] (75 min)
+• 4:15 PM - 5:30 PM: [Task Name] (75 min)
+
+💡 Tips:
+- [Energy management tip]
+- [Focus strategy]
+
+Be specific with times. Make it realistic and actionable.`,
           },
           {
             role: "user",
-            content: `Create an optimal daily plan for these tasks:\n${JSON.stringify(tasks, null, 2)}`,
+            content: `Create a daily schedule for these tasks:\n${JSON.stringify(tasks?.map(t => ({ title: t.title, priority: t.priority, estimated_time: t.estimated_time || 30 })), null, 2)}`,
           },
         ],
         stream: true,
