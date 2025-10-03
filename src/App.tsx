@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import GamefiedDashboard from "./pages/GamefiedDashboard";
+import UnifiedApp from "./pages/UnifiedApp";
 import NotFound from "./pages/NotFound";
 import { ensureSession } from '@/lib/ensureSession';
 
@@ -73,12 +74,13 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
-        <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<GamefiedDashboard />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<UnifiedApp />} />
+                <Route path="/legacy" element={<GamefiedDashboard />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
         </TooltipProvider>
       </QueryClientProvider>
   );

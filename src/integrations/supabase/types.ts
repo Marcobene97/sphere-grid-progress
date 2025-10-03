@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      daily_reviews: {
+        Row: {
+          blockers: string | null
+          created_at: string
+          id: string
+          lessons: string | null
+          markdown_export: string | null
+          review_date: string
+          tasks_completed: number | null
+          tasks_planned: number | null
+          top_three_tomorrow: string[] | null
+          updated_at: string
+          user_id: string
+          wins: string | null
+          xp_earned: number | null
+        }
+        Insert: {
+          blockers?: string | null
+          created_at?: string
+          id?: string
+          lessons?: string | null
+          markdown_export?: string | null
+          review_date: string
+          tasks_completed?: number | null
+          tasks_planned?: number | null
+          top_three_tomorrow?: string[] | null
+          updated_at?: string
+          user_id?: string
+          wins?: string | null
+          xp_earned?: number | null
+        }
+        Update: {
+          blockers?: string | null
+          created_at?: string
+          id?: string
+          lessons?: string | null
+          markdown_export?: string | null
+          review_date?: string
+          tasks_completed?: number | null
+          tasks_planned?: number | null
+          top_three_tomorrow?: string[] | null
+          updated_at?: string
+          user_id?: string
+          wins?: string | null
+          xp_earned?: number | null
+        }
+        Relationships: []
+      }
       day_plan_slots: {
         Row: {
           created_at: string
@@ -57,6 +105,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      inbox_items: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          processed: boolean | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          processed?: boolean | null
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          processed?: boolean | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       nodes: {
         Row: {
@@ -194,6 +269,66 @@ export type Database = {
           xp_to_next_level?: number
         }
         Relationships: []
+      }
+      sessions: {
+        Row: {
+          created_at: string
+          duration_minutes: number | null
+          ended_at: string | null
+          id: string
+          node_id: string | null
+          notes: string | null
+          reflection: Json | null
+          started_at: string
+          task_id: string | null
+          updated_at: string
+          user_id: string
+          xp_earned: number | null
+        }
+        Insert: {
+          created_at?: string
+          duration_minutes?: number | null
+          ended_at?: string | null
+          id?: string
+          node_id?: string | null
+          notes?: string | null
+          reflection?: Json | null
+          started_at?: string
+          task_id?: string | null
+          updated_at?: string
+          user_id?: string
+          xp_earned?: number | null
+        }
+        Update: {
+          created_at?: string
+          duration_minutes?: number | null
+          ended_at?: string | null
+          id?: string
+          node_id?: string | null
+          notes?: string | null
+          reflection?: Json | null
+          started_at?: string
+          task_id?: string | null
+          updated_at?: string
+          user_id?: string
+          xp_earned?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sessions_node_id_fkey"
+            columns: ["node_id"]
+            isOneToOne: false
+            referencedRelation: "nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sessions_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       subtasks: {
         Row: {
