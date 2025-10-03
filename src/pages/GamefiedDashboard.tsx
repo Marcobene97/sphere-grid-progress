@@ -11,6 +11,14 @@ import { useToast } from '@/hooks/use-toast';
 import { XPSystemDisplay } from '@/components/XPSystemDisplay';
 import { AITaskBreakdown } from '@/components/AITaskBreakdown';
 import { AIDailyPlanner } from '@/components/AIDailyPlanner';
+import { FocusCoach } from '@/components/ai-modules/FocusCoach';
+import { ProgressVisualizer } from '@/components/ai-modules/ProgressVisualizer';
+import { SmartBreakGenerator } from '@/components/ai-modules/SmartBreakGenerator';
+import { KnowledgeSynthesizer } from '@/components/ai-modules/KnowledgeSynthesizer';
+import { EnergyOptimizer } from '@/components/ai-modules/EnergyOptimizer';
+import { GoalAligner } from '@/components/ai-modules/GoalAligner';
+import { ContextSwitcher } from '@/components/ai-modules/ContextSwitcher';
+import { ProductivityInsights } from '@/components/ai-modules/ProductivityInsights';
 import { 
   Plus, 
   CheckCircle2, 
@@ -449,7 +457,8 @@ export default function GamefiedDashboard() {
             <XPSystemDisplay />
           </TabsContent>
 
-          <TabsContent value="ai" className="space-y-4">
+          <TabsContent value="ai" className="space-y-6">
+            {/* AI Task Tools */}
             <div className="grid md:grid-cols-2 gap-4">
               {selectedTask && (
                 <AITaskBreakdown
@@ -465,16 +474,24 @@ export default function GamefiedDashboard() {
               <AIDailyPlanner />
             </div>
 
-            {!selectedTask && (
-              <Card>
-                <CardContent className="py-8 text-center">
-                  <Sparkles className="h-12 w-12 mx-auto mb-4 text-purple-500 opacity-50" />
-                  <p className="text-muted-foreground">
-                    Select a task to break it down with AI
-                  </p>
-                </CardContent>
-              </Card>
-            )}
+            {/* AI Productivity Modules */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-purple-500" />
+                <h2 className="text-xl font-semibold">Your AI Team</h2>
+              </div>
+              
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <FocusCoach />
+                <ProgressVisualizer />
+                <SmartBreakGenerator />
+                <KnowledgeSynthesizer />
+                <EnergyOptimizer />
+                <GoalAligner />
+                <ContextSwitcher />
+                <ProductivityInsights />
+              </div>
+            </div>
           </TabsContent>
         </Tabs>
       </div>
