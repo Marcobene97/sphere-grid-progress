@@ -1,0 +1,21 @@
+{
+  "simple-programming": {
+    "subtasks": [
+      {"title": "Research JWT authentication best practices", "estimatedMinutes": 30, "xpReward": 35},
+      {"title": "Set up Express.js server with TypeScript", "estimatedMinutes": 20, "xpReward": 25},
+      {"title": "Create user model and database schema", "estimatedMinutes": 25, "xpReward": 30},
+      {"title": "Implement signup endpoint with validation", "estimatedMinutes": 40, "xpReward": 50},
+      {"title": "Implement login endpoint with JWT generation", "estimatedMinutes": 35, "xpReward": 45},
+      {"title": "Add token refresh endpoint", "estimatedMinutes": 25, "xpReward": 30}
+    ]
+  },
+  "learning-task": {
+    "subtasks": [
+      {"title": "Read official React hooks documentation", "estimatedMinutes": 30, "xpReward": 30},
+      {"title": "Watch tutorial on useState and useEffect", "estimatedMinutes": 25, "xpReward": 25},
+      {"title": "Build a counter component with useState", "estimatedMinutes": 20, "xpReward": 25},
+      {"title": "Create a data fetching component with useEffect", "estimatedMinutes": 35, "xpReward": 40},
+      {"title": "Experiment with useContext for state management", "estimatedMinutes": 30, "xpReward": 35}
+    ]
+  }
+}

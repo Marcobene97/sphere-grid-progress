@@ -1,0 +1,31 @@
+[
+  {
+    "id": "balanced-workday",
+    "description": "Mix of high and low energy tasks",
+    "input": {
+      "date": "2025-10-04",
+      "tasks": [
+        {"title": "Write design document", "priority": 5, "estimated_time": 90, "energy": "high"},
+        {"title": "Code review for team", "priority": 4, "estimated_time": 45, "energy": "medium"},
+        {"title": "Answer emails", "priority": 2, "estimated_time": 30, "energy": "low"},
+        {"title": "Debug production issue", "priority": 5, "estimated_time": 60, "energy": "high"}
+      ]
+    },
+    "expectedSlots": 4
+  },
+  {
+    "id": "overloaded-day",
+    "description": "More tasks than available time",
+    "input": {
+      "date": "2025-10-04",
+      "tasks": [
+        {"title": "Feature A", "priority": 5, "estimated_time": 120, "energy": "high"},
+        {"title": "Feature B", "priority": 4, "estimated_time": 90, "energy": "high"},
+        {"title": "Feature C", "priority": 3, "estimated_time": 90, "energy": "medium"},
+        {"title": "Bug fixes", "priority": 4, "estimated_time": 60, "energy": "medium"},
+        {"title": "Documentation", "priority": 2, "estimated_time": 60, "energy": "low"}
+      ]
+    },
+    "expectedUnscheduled": 2
+  }
+]

@@ -1,0 +1,27 @@
+[
+  {
+    "id": "programming-braindump",
+    "description": "Multiple programming ideas in one text",
+    "input": {
+      "content": "Need to finish the auth system, also want to learn Docker, maybe write some tests for the API, oh and I should update the README with deployment instructions"
+    },
+    "expectedTasks": 4
+  },
+  {
+    "id": "mixed-personal-work",
+    "description": "Mixed personal and work items",
+    "input": {
+      "content": "Call dentist tomorrow, review Sarah's design mockups, gym session sometime this week, follow up with client about invoice"
+    },
+    "expectedTasks": 4
+  },
+  {
+    "id": "single-vague-idea",
+    "description": "Single vague idea",
+    "input": {
+      "content": "maybe do something about the website performance"
+    },
+    "expectedTasks": 1,
+    "expectedConfidence": "low"
+  }
+]

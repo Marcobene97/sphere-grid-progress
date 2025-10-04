@@ -1,0 +1,44 @@
+[
+  {
+    "id": "simple-programming",
+    "description": "Simple API task",
+    "input": {
+      "taskTitle": "Build a REST API for user authentication",
+      "taskDescription": "Create endpoints for login, signup, and token refresh"
+    },
+    "expectedSubtasks": 6
+  },
+  {
+    "id": "learning-task",
+    "description": "Learning without explicit subtasks",
+    "input": {
+      "taskTitle": "Learn React hooks"
+    },
+    "expectedSubtasks": 5
+  },
+  {
+    "id": "complex-fullstack",
+    "description": "Multi-layer fullstack feature",
+    "input": {
+      "taskTitle": "Implement real-time chat feature",
+      "taskDescription": "WebSocket-based chat with message history, typing indicators, and emoji reactions"
+    },
+    "expectedSubtasks": 8
+  },
+  {
+    "id": "vague-task",
+    "description": "Intentionally vague to test AI reasoning",
+    "input": {
+      "taskTitle": "Improve app performance"
+    },
+    "expectedSubtasks": 5
+  },
+  {
+    "id": "micro-task",
+    "description": "Very small task that shouldn't over-split",
+    "input": {
+      "taskTitle": "Fix typo in README"
+    },
+    "expectedSubtasks": 3
+  }
+]
