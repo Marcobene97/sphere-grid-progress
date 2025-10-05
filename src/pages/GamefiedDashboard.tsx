@@ -9,27 +9,17 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { XPSystemDisplay } from '@/components/XPSystemDisplay';
-import { AITaskBreakdown } from '@/components/AITaskBreakdown';
+import { AITaskSorter } from '@/components/AITaskSorter';
 import { AIDailyPlanner } from '@/components/AIDailyPlanner';
-import { FocusCoach } from '@/components/ai-modules/FocusCoach';
-import { ProgressVisualizer } from '@/components/ai-modules/ProgressVisualizer';
-import { SmartBreakGenerator } from '@/components/ai-modules/SmartBreakGenerator';
-import { KnowledgeSynthesizer } from '@/components/ai-modules/KnowledgeSynthesizer';
-import { EnergyOptimizer } from '@/components/ai-modules/EnergyOptimizer';
-import { GoalAligner } from '@/components/ai-modules/GoalAligner';
-import { ContextSwitcher } from '@/components/ai-modules/ContextSwitcher';
-import { ProductivityInsights } from '@/components/ai-modules/ProductivityInsights';
 import { 
   Plus, 
   CheckCircle2, 
-  Circle, 
   Trash2, 
   Target,
   Sparkles,
   Loader2,
   Zap,
-  Trophy,
-  Calendar
+  Trophy
 } from 'lucide-react';
 
 interface Task {
@@ -49,7 +39,6 @@ export default function GamefiedDashboard() {
   const [newTaskDescription, setNewTaskDescription] = useState('');
   const [brainDumpText, setBrainDumpText] = useState('');
   const [processing, setProcessing] = useState(false);
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -360,13 +349,6 @@ export default function GamefiedDashboard() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => setSelectedTask(task)}
-                          >
-                            <Sparkles className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
                             onClick={() => deleteTask(task.id)}
                           >
                             <Trash2 className="h-4 w-4" />
@@ -458,39 +440,9 @@ export default function GamefiedDashboard() {
           </TabsContent>
 
           <TabsContent value="ai" className="space-y-6">
-            {/* AI Task Tools */}
             <div className="grid md:grid-cols-2 gap-4">
-              {selectedTask && (
-                <AITaskBreakdown
-                  taskId={selectedTask.id}
-                  taskTitle={selectedTask.title}
-                  taskDescription={selectedTask.description}
-                  onBreakdownComplete={() => {
-                    loadTasks();
-                    setSelectedTask(null);
-                  }}
-                />
-              )}
+              <AITaskSorter onComplete={loadTasks} />
               <AIDailyPlanner />
-            </div>
-
-            {/* AI Productivity Modules */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-purple-500" />
-                <h2 className="text-xl font-semibold">Your AI Team</h2>
-              </div>
-              
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <FocusCoach />
-                <ProgressVisualizer />
-                <SmartBreakGenerator />
-                <KnowledgeSynthesizer />
-                <EnergyOptimizer />
-                <GoalAligner />
-                <ContextSwitcher />
-                <ProductivityInsights />
-              </div>
             </div>
           </TabsContent>
         </Tabs>

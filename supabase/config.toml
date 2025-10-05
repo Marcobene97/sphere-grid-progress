@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.ai-daily-plan]
 verify_jwt = true
+
+[functions.ai-task-sorter]
+verify_jwt = true
