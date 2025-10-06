@@ -1,150 +1,176 @@
-import { AppState } from '@/types';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
-import { TrendingUp, Calendar, Target, Award } from 'lucide-react';
+import { 
+  BarChart3, 
+  TrendingUp, 
+  Calendar,
+  Award,
+  Zap
+} from 'lucide-react';
 
-interface AnalyticsProps {
-  state: AppState;
+interface AnalyticsData {
+  totalTasks: number;
+  completedTasks: number;
+  totalXP: number;
+  weeklyXP: number;
+  avgTaskXP: number;
+  completionRate: number;
 }
 
-export const Analytics = ({ state }: AnalyticsProps) => {
-  const { user, tasks, nodes, achievements } = state;
-
-  const completedTasks = tasks.filter(t => t.status === 'completed');
-  const completedNodes = nodes.filter(n => n.status === 'completed' || n.status === 'mastered');
-  const unlockedAchievements = achievements.filter(a => a.unlockedAt);
-
-  const categoryStats = ['programming', 'finance', 'music', 'general'].map(category => {
-    const categoryTasks = tasks.filter(t => t.category === category);
-    const completedCategoryTasks = categoryTasks.filter(t => t.status === 'completed');
-    return {
-      category,
-      total: categoryTasks.length,
-      completed: completedCategoryTasks.length,
-      percentage: categoryTasks.length > 0 ? (completedCategoryTasks.length / categoryTasks.length) * 100 : 0
-    };
+export default function Analytics() {
+  const [data, setData] = useState<AnalyticsData>({
+    totalTasks: 0,
+    completedTasks: 0,
+    totalXP: 0,
+    weeklyXP: 0,
+    avgTaskXP: 0,
+    completionRate: 0
   });
+  const [loading, setLoading] = useState(true);
 
-  const recentActivity = completedTasks
-    .filter(t => t.completedAt)
-    .sort((a, b) => new Date(b.completedAt!).getTime() - new Date(a.completedAt!).getTime())
-    .slice(0, 5);
+  useEffect(() => {
+    loadAnalytics();
 
-  return (
-    <div className="space-y-6">
-      {/* Overview Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <TrendingUp className="w-4 h-4" />
-              Total XP
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{user.totalXP.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">
-              Level {user.level} • {user.rank} Rank
-            </p>
-          </CardContent>
-        </Card>
+    const channel = supabase
+      .channel('analytics-updates')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, loadAnalytics)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'xp_events' }, loadAnalytics)
+      .subscribe();
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Target className="w-4 h-4" />
-              Tasks Completed
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{completedTasks.length}</div>
-            <p className="text-xs text-muted-foreground">
-              {tasks.length - completedTasks.length} remaining
-            </p>
-          </CardContent>
-        </Card>
+    return () => { supabase.removeChannel(channel); };
+  }, []);
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Calendar className="w-4 h-4" />
-              Current Streak
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{user.streaks.current}</div>
-            <p className="text-xs text-muted-foreground">
-              Best: {user.streaks.longest} days
-            </p>
-          </CardContent>
-        </Card>
+  const loadAnalytics = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Award className="w-4 h-4" />
-              Achievements
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{unlockedAchievements.length}</div>
-            <p className="text-xs text-muted-foreground">
-              Of {achievements.length} total
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      // Get all tasks
+      const { data: tasks } = await supabase
+        .from('tasks')
+        .select('status, xp_reward')
+        .eq('user_id', user.id);
 
-      {/* Category Progress */}
+      const totalTasks = tasks?.length || 0;
+      const completedTasks = tasks?.filter(t => t.status === 'completed').length || 0;
+      const completionRate = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+
+      // Get total XP
+      const { data: totalXPData } = await supabase.rpc('get_user_total_xp');
+      const totalXP = totalXPData || 0;
+
+      // Get weekly XP (last 7 days)
+      const weekAgo = new Date();
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      
+      const { data: weeklyXPData } = await supabase
+        .from('xp_events')
+        .select('amount')
+        .eq('user_id', user.id)
+        .gte('created_at', weekAgo.toISOString());
+
+      const weeklyXP = weeklyXPData?.reduce((sum, event) => sum + event.amount, 0) || 0;
+
+      // Calculate average task XP
+      const completedTasksData = tasks?.filter(t => t.status === 'completed') || [];
+      const avgTaskXP = completedTasksData.length > 0
+        ? completedTasksData.reduce((sum, t) => sum + t.xp_reward, 0) / completedTasksData.length
+        : 0;
+
+      setData({
+        totalTasks,
+        completedTasks,
+        totalXP,
+        weeklyXP,
+        avgTaskXP: Math.round(avgTaskXP),
+        completionRate: Math.round(completionRate)
+      });
+    } catch (error) {
+      console.error('Failed to load analytics:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
       <Card>
-        <CardHeader>
-          <CardTitle>Category Progress</CardTitle>
-          <CardDescription>Your progress across different skill branches</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {categoryStats.map(stat => (
-            <div key={stat.category} className="space-y-2">
-              <div className="flex justify-between items-center">
-                <span className="font-medium capitalize">{stat.category}</span>
-                <span className="text-sm text-muted-foreground">
-                  {stat.completed} / {stat.total} tasks
-                </span>
-              </div>
-              <Progress value={stat.percentage} className="h-2" />
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-
-      {/* Recent Activity */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Activity</CardTitle>
-          <CardDescription>Your latest completed tasks</CardDescription>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <div className="space-y-3">
-            {recentActivity.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                No completed tasks yet
-              </p>
-            ) : (
-              recentActivity.map(task => (
-                <div key={task.id} className="flex items-center justify-between p-3 rounded-lg border">
-                  <div>
-                    <h4 className="font-medium text-sm">{task.title}</h4>
-                    <p className="text-xs text-muted-foreground">
-                      Completed {new Date(task.completedAt!).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <Badge variant="secondary">+{task.xpReward} XP</Badge>
-                </div>
-              ))
-            )}
+            <div className="h-4 bg-muted animate-pulse rounded" />
+            <div className="h-4 bg-muted animate-pulse rounded" />
+            <div className="h-4 bg-muted animate-pulse rounded" />
           </div>
         </CardContent>
       </Card>
-    </div>
+    );
+  }
+
+  return (
+    <Card className="bg-gradient-to-br from-blue-500/5 to-cyan-500/5 border-blue-500/20">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <BarChart3 className="h-5 w-5 text-blue-500" />
+          Analytics
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Completion Rate */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2 text-sm">
+              <Award className="h-4 w-4 text-blue-500" />
+              <span className="text-muted-foreground">Completion Rate</span>
+            </div>
+            <span className="font-bold text-lg">{data.completionRate}%</span>
+          </div>
+          <Progress value={data.completionRate} className="h-2" />
+        </div>
+
+        {/* Weekly XP */}
+        <div className="flex items-center justify-between py-2 border-t">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Calendar className="h-4 w-4 text-green-500" />
+            <span>This Week</span>
+          </div>
+          <span className="font-bold text-lg text-green-600">
+            +{data.weeklyXP} XP
+          </span>
+        </div>
+
+        {/* Average Task XP */}
+        <div className="flex items-center justify-between py-2 border-t">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Zap className="h-4 w-4 text-yellow-500" />
+            <span>Avg Task XP</span>
+          </div>
+          <span className="font-bold text-lg">{data.avgTaskXP}</span>
+        </div>
+
+        {/* Total Stats */}
+        <div className="grid grid-cols-2 gap-3 pt-2 border-t">
+          <div className="text-center p-3 rounded-lg bg-background/50">
+            <div className="text-2xl font-bold">{data.totalTasks}</div>
+            <div className="text-xs text-muted-foreground">Total Tasks</div>
+          </div>
+          <div className="text-center p-3 rounded-lg bg-background/50">
+            <div className="text-2xl font-bold text-green-600">{data.completedTasks}</div>
+            <div className="text-xs text-muted-foreground">Completed</div>
+          </div>
+        </div>
+
+        {/* Performance Indicator */}
+        <div className="flex items-center gap-2 pt-2 border-t text-sm">
+          <TrendingUp className={`h-4 w-4 ${data.weeklyXP > 0 ? 'text-green-500' : 'text-muted-foreground'}`} />
+          <span className="text-muted-foreground">
+            {data.weeklyXP > 100 ? 'Great momentum! 🔥' : 
+             data.weeklyXP > 50 ? 'Keep it up! 💪' : 
+             'Time to complete some quests! 🎯'}
+          </span>
+        </div>
+      </CardContent>
+    </Card>
   );
-};
+}

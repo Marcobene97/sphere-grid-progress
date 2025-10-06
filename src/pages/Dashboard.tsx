@@ -8,6 +8,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
+import BrainDump from '@/components/BrainDump';
+import Analytics from '@/components/Analytics';
 import { 
   Plus, 
   Zap, 
@@ -17,7 +19,8 @@ import {
   LogOut,
   Target,
   Trash2,
-  ArrowUpDown
+  ArrowUpDown,
+  Calculator
 } from 'lucide-react';
 
 interface Task {
@@ -149,6 +152,26 @@ export default function Dashboard() {
       });
     } finally {
       setSorting(false);
+    }
+  };
+
+  const calculateXP = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-xp-calculator');
+      
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+
+      toast({
+        title: "XP Calculated! ⚡",
+        description: `Updated ${data.count} tasks with dynamic XP`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Calculation Failed",
+        description: error.message,
+        variant: "destructive"
+      });
     }
   };
 
@@ -341,31 +364,26 @@ export default function Dashboard() {
 
           {/* Sidebar */}
           <div className="space-y-6">
-            {/* Stats */}
-            <Card className="border-purple-500/20 bg-gradient-to-br from-purple-500/5 to-pink-500/5">
+            {/* Brain Dump */}
+            <BrainDump />
+
+            {/* Analytics */}
+            <Analytics />
+
+            {/* Quick Actions */}
+            <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Sparkles className="h-5 w-5 text-purple-500" />
-                  Your Stats
-                </CardTitle>
+                <CardTitle className="text-base">⚡ Quick Actions</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Total XP</span>
-                  <span className="font-bold text-xl">{xpData.totalXP}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Level</span>
-                  <span className="font-bold text-xl">{xpData.level}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Completed</span>
-                  <span className="font-bold text-xl">{completed.length}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Active</span>
-                  <span className="font-bold text-xl">{pending.length}</span>
-                </div>
+              <CardContent className="space-y-2">
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start"
+                  onClick={calculateXP}
+                >
+                  <Calculator className="h-4 w-4 mr-2" />
+                  Recalculate All XP
+                </Button>
               </CardContent>
             </Card>
 
@@ -375,9 +393,9 @@ export default function Dashboard() {
                 <CardTitle className="text-base">💡 Pro Tips</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 text-sm text-muted-foreground">
-                <p>• Use AI Sort to prioritize tasks intelligently</p>
+                <p>• Use Brain Dump to batch-create tasks</p>
+                <p>• AI calculates XP based on difficulty & time</p>
                 <p>• Complete quests to earn XP and level up</p>
-                <p>• Higher difficulty = more XP rewards</p>
               </CardContent>
             </Card>
           </div>

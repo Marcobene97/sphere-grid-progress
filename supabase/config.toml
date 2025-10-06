@@ -20,3 +20,9 @@ verify_jwt = true
 
 [functions.ai-task-sorter]
 verify_jwt = true
+
+[functions.ai-brain-dump]
+verify_jwt = true
+
+[functions.ai-xp-calculator]
+verify_jwt = true
