@@ -10,6 +10,8 @@ import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
 import BrainDump from '@/components/BrainDump';
 import Analytics from '@/components/Analytics';
+import { QuestDetailsModal } from '@/components/quests/QuestDetailsModal';
+import { getRemainingXp } from '@/lib/xp';
 import { 
   Plus, 
   Zap, 
@@ -20,7 +22,8 @@ import {
   Target,
   Trash2,
   ArrowUpDown,
-  Calculator
+  Calculator,
+  Info
 } from 'lucide-react';
 
 interface Task {
@@ -39,8 +42,10 @@ export default function Dashboard() {
   const [newTask, setNewTask] = useState('');
   const [newDesc, setNewDesc] = useState('');
   const [loading, setLoading] = useState(true);
-  const [xpData, setXpData] = useState({ totalXP: 0, level: 1, progress: 0 });
+  const [xpData, setXpData] = useState({ totalXP: 0, level: 1, progress: 0, xpToNext: 100 });
   const [sorting, setSorting] = useState(false);
+  const [selectedQuestId, setSelectedQuestId] = useState<string | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -70,10 +75,9 @@ export default function Dashboard() {
   const loadXP = async () => {
     const { data: xpResult } = await supabase.rpc('get_user_total_xp');
     const totalXP = xpResult || 0;
-    const level = Math.floor(totalXP / 100) + 1;
-    const xpInLevel = totalXP % 100;
+    const { level, progressPercent, xpToNextLevel } = getRemainingXp(totalXP);
     
-    setXpData({ totalXP, level, progress: xpInLevel });
+    setXpData({ totalXP, level, progress: progressPercent, xpToNext: xpToNextLevel });
   };
 
   const addTask = async () => {
@@ -102,22 +106,46 @@ export default function Dashboard() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    await supabase.from('tasks').update({ 
-      status: 'completed',
-      completed_at: new Date().toISOString()
-    }).eq('id', task.id);
+    // Optimistic update - immediately update UI
+    const newXP = xpData.totalXP + task.xp_reward;
+    const { level, progressPercent, xpToNextLevel } = getRemainingXp(newXP);
+    setXpData({ totalXP: newXP, level, progress: progressPercent, xpToNext: xpToNextLevel });
+    
+    setTasks(prev => prev.map(t => 
+      t.id === task.id ? { ...t, status: 'completed' } : t
+    ));
 
-    await supabase.from('xp_events').insert({
-      user_id: user.id,
-      amount: task.xp_reward,
-      source: 'task_completion',
-      meta: { task_id: task.id, task_title: task.title }
-    });
+    try {
+      // Background DB updates
+      await Promise.all([
+        supabase.from('tasks').update({ 
+          status: 'completed',
+          completed_at: new Date().toISOString()
+        }).eq('id', task.id),
+        supabase.from('xp_events').insert({
+          user_id: user.id,
+          amount: task.xp_reward,
+          source: 'task_completion',
+          meta: { task_id: task.id, task_title: task.title }
+        })
+      ]);
 
-    toast({ 
-      title: `+${task.xp_reward} XP! 🎉`,
-      description: "Quest completed!",
-    });
+      toast({ 
+        title: `+${task.xp_reward} XP! 🎉`,
+        description: level > xpData.level ? `Level Up! Now Level ${level}! 🎊` : "Quest completed!",
+      });
+    } catch (error) {
+      // Rollback on error
+      setXpData({ totalXP: xpData.totalXP, level: xpData.level, progress: xpData.progress, xpToNext: xpData.xpToNext });
+      setTasks(prev => prev.map(t => 
+        t.id === task.id ? { ...t, status: 'pending' } : t
+      ));
+      toast({ 
+        title: "Error",
+        description: "Failed to complete quest. Try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const toggleTask = async (task: Task) => {
@@ -232,7 +260,7 @@ export default function Dashboard() {
                 </div>
                 <Progress value={xpData.progress} className="h-3" />
                 <p className="text-xs text-muted-foreground mt-2 text-center">
-                  {100 - xpData.progress} XP to Level {xpData.level + 1}
+                  {xpData.xpToNext} XP to Level {xpData.level + 1}
                 </p>
               </CardContent>
             </Card>
@@ -319,6 +347,17 @@ export default function Dashboard() {
                       <Button
                         variant="ghost"
                         size="icon"
+                        onClick={() => {
+                          setSelectedQuestId(task.id);
+                          setModalOpen(true);
+                        }}
+                        title="View details"
+                      >
+                        <Info className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => deleteTask(task.id)}
                       >
                         <Trash2 className="h-4 w-4" />
@@ -401,6 +440,13 @@ export default function Dashboard() {
           </div>
         </div>
       </main>
+
+      {/* Quest Details Modal */}
+      <QuestDetailsModal 
+        questId={selectedQuestId}
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+      />
     </div>
   );
 }
