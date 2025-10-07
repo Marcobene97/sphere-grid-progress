@@ -2,12 +2,14 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
+import { Buffer } from 'buffer';
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   define: {
     'global': 'globalThis',
-    'process.env': {},
+    'process.env': '{}',
+    'Buffer': ['buffer', 'Buffer'],
   },
   server: {
     host: "::",
@@ -24,6 +26,8 @@ export default defineConfig(({ mode }) => ({
       'react': path.resolve(__dirname, './node_modules/react'),
       'react-dom': path.resolve(__dirname, './node_modules/react-dom'),
       'react/jsx-runtime': path.resolve(__dirname, './node_modules/react/jsx-runtime'),
+      'stream': 'stream-browserify',
+      'buffer': 'buffer',
     },
     dedupe: ['react', 'react-dom'],
     extensions: ['.mjs', '.js', '.ts', '.jsx', '.tsx', '.json'],
@@ -49,10 +53,13 @@ export default defineConfig(({ mode }) => ({
     minify: 'esbuild'
   },
   optimizeDeps: {
-    include: ['react', 'react-dom', 'react/jsx-runtime'],
+    include: ['react', 'react-dom', 'react/jsx-runtime', 'buffer', 'stream-browserify'],
     exclude: ['openai'],
     esbuildOptions: {
       resolveExtensions: ['.mjs', '.js', '.ts', '.jsx', '.tsx', '.json'],
+      define: {
+        global: 'globalThis'
+      },
     },
   },
 }));
