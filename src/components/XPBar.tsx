@@ -1,4 +1,4 @@
-import React from 'react';
+import { useEffect } from 'react';
 import { User } from '@/types';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
@@ -16,7 +16,7 @@ export const XPBar = ({ user, showRank = true, className = '' }: XPBarProps) => 
   const levelInfo = levelFromXP(xp);
   
   // Load XP from Supabase on mount
-  React.useEffect(() => {
+  useEffect(() => {
     loadXP();
   }, [loadXP]);
   
