@@ -24,6 +24,14 @@ export default tseslint.config(
         { allowConstantExport: true },
       ],
       "@typescript-eslint/no-unused-vars": "off",
+      "@typescript-eslint/no-explicit-any": "off",
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "MemberExpression[object.name='React'][property.name=/^use/]",
+          message: "Use named imports from 'react' instead of React.useX (e.g., import { useEffect } from 'react')"
+        }
+      ],
     },
   }
 );

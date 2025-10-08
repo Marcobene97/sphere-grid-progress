@@ -1,4 +1,6 @@
 import { Buffer } from 'buffer';
+import * as React from 'react';
+import * as ReactDOM from 'react-dom';
 
 // Polyfill Buffer for browser environment
 (window as any).Buffer = Buffer;
@@ -11,3 +13,7 @@ import { Buffer } from 'buffer';
   version: '',
   versions: {},
 };
+
+// Make React available globally for Radix UI and other dependencies
+(window as any).React = React;
+(window as any).ReactDOM = ReactDOM;
