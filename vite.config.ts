@@ -9,8 +9,6 @@ export default defineConfig(({ mode }) => ({
   define: {
     'global': 'globalThis',
     'process.env': '{}',
-    'React': 'window.React',
-    'ReactDOM': 'window.ReactDOM',
   },
   server: {
     host: "::",
@@ -35,12 +33,14 @@ export default defineConfig(({ mode }) => ({
     chunkSizeWarningLimit: 1600,
     rollupOptions: {
       output: {
-        // split vendor + any heavy libs you might add later
+        // Ensure polyfills load first by putting them in the entry chunk
         manualChunks(id) {
+          // Don't split react into separate chunk - keep it with polyfills in entry
           if (id.includes('node_modules')) {
-            if (id.includes('react')) return 'vendor-react';
             if (id.includes('@tanstack')) return 'vendor-query';
             if (id.includes('@supabase')) return 'vendor-supabase';
+            // Group all radix-ui together with react to ensure proper initialization
+            if (id.includes('@radix-ui') || id.includes('react')) return 'vendor-react';
             return 'vendor';
           }
         }
