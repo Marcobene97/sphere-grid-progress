@@ -9,10 +9,8 @@ export default defineConfig(({ mode }) => ({
   define: {
     'global': 'globalThis',
     'process.env': '{}',
-    ...(mode === 'production' ? {
-      'React': 'window.React',
-      'ReactDOM': 'window.ReactDOM',
-    } : {}),
+    'React': 'window.React',
+    'ReactDOM': 'window.ReactDOM',
   },
   server: {
     host: "::",
