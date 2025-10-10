@@ -24,30 +24,33 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
       'stream': 'stream-browserify',
       'buffer': 'buffer',
+      // Ensure single React instance
+      'react': path.resolve(__dirname, './node_modules/react'),
+      'react-dom': path.resolve(__dirname, './node_modules/react-dom'),
     },
     dedupe: ['react', 'react-dom'],
     extensions: ['.mjs', '.js', '.ts', '.jsx', '.tsx', '.json'],
   },
   build: {
-    // This only silences the warning threshold; real fix is chunking:
     chunkSizeWarningLimit: 1600,
     rollupOptions: {
       output: {
-        // Ensure polyfills load first by putting them in the entry chunk
+        // Critical: Keep React and Radix in same chunk to prevent duplicate React instances
         manualChunks(id) {
-          // Don't split react into separate chunk - keep it with polyfills in entry
           if (id.includes('node_modules')) {
+            // Radix UI MUST be bundled with React to avoid separate React instances
+            if (id.includes('react') || id.includes('@radix-ui')) {
+              return 'vendor-react';
+            }
             if (id.includes('@tanstack')) return 'vendor-query';
             if (id.includes('@supabase')) return 'vendor-supabase';
-            // Group all radix-ui together with react to ensure proper initialization
-            if (id.includes('@radix-ui') || id.includes('react')) return 'vendor-react';
             return 'vendor';
           }
-        }
-      }
+        },
+      },
     },
     sourcemap: true,
-    minify: 'esbuild'
+    minify: 'esbuild',
   },
   optimizeDeps: {
     include: ['react', 'react-dom', 'react/jsx-runtime', 'buffer', 'stream-browserify'],

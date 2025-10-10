@@ -1,6 +1,8 @@
+// Polyfills MUST run first
+import './polyfills';
+
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import './polyfills';
 import App from './App';
 import './index.css';
 

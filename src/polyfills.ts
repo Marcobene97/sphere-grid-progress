@@ -14,6 +14,33 @@ import * as ReactDOM from 'react-dom';
   versions: {},
 };
 
-// Make React available globally for Radix UI and other dependencies
-(window as any).React = React;
-(window as any).ReactDOM = ReactDOM;
+// CRITICAL: Make React available globally for Radix UI compatibility
+// This is a fallback - index.html also sets these before main bundle loads
+if (typeof window !== 'undefined') {
+  if (!window.React) {
+    (window as any).React = React;
+    console.log('[Polyfills] Setting window.React as fallback');
+  }
+  if (!window.ReactDOM) {
+    (window as any).ReactDOM = ReactDOM;
+    console.log('[Polyfills] Setting window.ReactDOM as fallback');
+  }
+  
+  // Also set on globalThis for maximum compatibility
+  if (!globalThis.React) {
+    (globalThis as any).React = React;
+  }
+  if (!globalThis.ReactDOM) {
+    (globalThis as any).ReactDOM = ReactDOM;
+  }
+}
+
+// Verification check
+if (typeof window !== 'undefined') {
+  console.log('[Polyfills] React globals check:', {
+    'window.React': !!window.React,
+    'window.ReactDOM': !!window.ReactDOM,
+    'globalThis.React': !!globalThis.React,
+  });
+}
+
