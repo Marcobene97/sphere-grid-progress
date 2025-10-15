@@ -20,15 +20,6 @@
 
   <body>
     <div id="root"></div>
-    <!-- Inject React globally before main bundle for Radix UI compatibility -->
-    <script type="module">
-      import * as React from 'react';
-      import * as ReactDOM from 'react-dom/client';
-      window.React = React;
-      window.ReactDOM = ReactDOM;
-      globalThis.React = React;
-      globalThis.ReactDOM = ReactDOM;
-    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
